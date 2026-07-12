@@ -1,0 +1,38 @@
+# AirOJ .gitignore
+
+# Database
+*.db
+*.db-wal
+*.db-shm
+
+# Logs
+*.log
+/data/
+
+# Uploads
+/data/uploads/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment
+venv/
+__pycache__/
+*.pyc
+.env
+
+# Local config
+config.local.php
+*.local.*
+
+# Embedded git repos
+.airojfront/AirOJ/
+judge/JudgeServer/
+judge/Judger/

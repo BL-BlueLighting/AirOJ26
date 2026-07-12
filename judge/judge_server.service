@@ -1,0 +1,23 @@
+[Unit]
+Description=QingdaoU Judge Server for AirOJ
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Environment=TOKEN=AIR_JUDGE_TOKEN_DEV
+Environment=BACKEND_URL=http://localhost:8080/api/judge_server_heartbeat
+Environment=SERVICE_URL=http://localhost:12358
+Environment=JUDGER_PATH=/home/BlueLighting/AirOJ/judge/Judger/output/libjudger.so
+Environment=LOG_BASE=/log
+WorkingDirectory=/home/BlueLighting/AirOJ/judge/JudgeServer/server
+ExecStart=/home/BlueLighting/AirOJ/venv/bin/gunicorn server:app \
+    --workers 2 --threads 4 \
+    --bind 0.0.0.0:12358 \
+    --error-logfile /log/gunicorn.log \
+    --access-logfile /log/access.log
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
