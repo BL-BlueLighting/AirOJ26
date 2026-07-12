@@ -36,3 +36,6 @@ config.local.php
 .airojfront/AirOJ/
 judge/JudgeServer/
 judge/Judger/
+.airojfront/
+judge/Judger/
+judge/JudgeServer/
