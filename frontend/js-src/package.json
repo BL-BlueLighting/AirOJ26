@@ -1,0 +1,15 @@
+{
+  "name": "airoj-monaco-build",
+  "private": true,
+  "version": "1.0.0",
+  "description": "AirOJ 前端 Monaco 编辑器构建源码，产物输出到 ../js/",
+  "scripts": {
+    "build": "vite build"
+  },
+  "dependencies": {
+    "monaco-editor": "0.52.2"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}

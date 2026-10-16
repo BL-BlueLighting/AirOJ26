@@ -45,6 +45,10 @@ $panels = [
     <a href="?panel=privilege_add" class="<?=$panel==='privilege_add'?'active':''?>">添加权限</a>
     <a href="?panel=privilege_log" class="<?=$panel==='privilege_log'?'active':''?>">权限日志</a>
 
+    <div class="section-title">🏁 比赛</div>
+    <a href="/admin/contest_list.php" class="<?=basename($_SERVER['SCRIPT_NAME']??'')==='contest_list.php'?'active':''?>">比赛列表</a>
+    <a href="/admin/contest_edit.php?id=0" class="<?=basename($_SERVER['SCRIPT_NAME']??'')==='contest_edit.php'?'active':''?>">添加比赛</a>
+
     <div class="section-title">📢 公告</div>
     <a href="?panel=news_list" class="<?=$panel==='news_list'?'active':''?>">公告列表</a>
     <a href="?panel=news_add" class="<?=$panel==='news_add'?'active':''?>">添加公告</a>
@@ -617,7 +621,7 @@ function import_hustoj(string $dir, string $name): void {
     $scroll = Database::fetchOne("SELECT value FROM system_config WHERE key_name='scroll_news'")['value'] ?? '';
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $content = $_POST['content'] ?? '';
-        if ($content) Database::insert("INSERT OR REPLACE INTO system_config (key_name,value) VALUES ('scroll_news',?)", [$content]);
+        if ($content) Database::setConfig('scroll_news', $content);
         else Database::exec("DELETE FROM system_config WHERE key_name='scroll_news'");
         $ok = '滚动公告已更新';
     } ?>

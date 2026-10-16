@@ -89,8 +89,12 @@ LANGUAGE_CONFIGS = {
     "java": {
         "name": "Java",
         "compile": True,
-        "compile_command": "/usr/bin/javac -d {exe_dir} {src_path}",
-        "run_command": "/usr/bin/java -cp {exe_dir} Main",
+        # JVM 默认预留 1GB 以上虚拟地址空间，编译沙箱必须限制堆与元空间，
+        # 运行改为按 RSS 检查（memory_limit_check_only）并用 -Xmx 限定堆
+        "compile_command": "/usr/bin/javac -J-Xmx256m -J-XX:CompressedClassSpaceSize=128m -d {exe_dir} {src_path}",
+        "run_command": "/usr/bin/java -Xmx256m -XX:CompressedClassSpaceSize=128m -cp {exe_dir} Main",
+        "compile_options": {"memory_limit_check_only": 1},
+        "run_options": {"memory_limit_check_only": 1},
         "seccomp_rule": "general",
         "src_name": "Main.java",
         "exe_name": "Main.class",
@@ -99,6 +103,9 @@ LANGUAGE_CONFIGS = {
         "name": "Go",
         "compile": True,
         "compile_command": "/usr/bin/go build -o {exe_path} {src_path}",
+        # 编译沙箱没有 HOME，需要可写的 GOCACHE；运行时会预留大块虚拟内存，按 RSS 检查
+        "compile_env": ["GOCACHE=/tmp/airoj-gocache", "HOME=/tmp"],
+        "run_options": {"memory_limit_check_only": 1},
         "run_command": "{exe_path}",
         "seccomp_rule": "golang",
         "src_name": "main.go",

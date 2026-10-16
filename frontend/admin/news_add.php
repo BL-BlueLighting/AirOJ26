@@ -10,7 +10,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $title = trim($_POST['title'] ?? '');
     $content = trim($_POST['content'] ?? '');
     if ($title && $content) {
-        Database::insert("INSERT INTO news (title,content) VALUES (?,?)", [$title, $content]);
+        Database::insert("INSERT INTO news (title,content,pinned) VALUES (?,?,?)",
+            [$title, $content, isset($_POST['pinned']) ? 1 : 0]);
         header('Location: news_list.php'); exit;
     }
 }
@@ -19,7 +20,9 @@ require __DIR__ . '/../inc/header.php'; ?>
 <div class="card" style="max-width:700px">
     <form method="post">
         <div class="form-group"><label>标题</label><input type="text" name="title" class="form-input" required></div>
-        <div class="form-group"><label>内容</label><textarea name="content" class="form-input" style="min-height:200px" required></textarea></div>
+        <div class="form-group"><label>内容（支持 Markdown）</label><textarea name="content" class="form-input" style="min-height:200px" required></textarea></div>
+        <div class="form-group"><label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" name="pinned" value="1"> 📌 置顶显示</label></div>
         <button type="submit" class="btn btn-primary">发布</button>
     </form>
 </div>

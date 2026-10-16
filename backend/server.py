@@ -155,6 +155,7 @@ def _build_language_config(lang):
             "exe_name": cfg["exe_name"],
         }
     }
+    lang_cfg["run"].update(cfg.get("run_options", {}))
 
     if cfg.get("compile") and cfg.get("compile_command"):
         lang_cfg["compile"] = {
@@ -165,6 +166,9 @@ def _build_language_config(lang):
             "max_memory": 536870912,  # 512 MB
             "compile_command": cfg["compile_command"],
         }
+        if cfg.get("compile_env"):
+            lang_cfg["compile"]["env"] = cfg["compile_env"]
+        lang_cfg["compile"].update(cfg.get("compile_options", {}))
 
     return lang_cfg
 

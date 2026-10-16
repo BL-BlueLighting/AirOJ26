@@ -39,3 +39,6 @@ judge/Judger/
 .airojfront/
 judge/Judger/
 judge/JudgeServer/
+
+# Inputs and outputs
+inputs_outputs/*

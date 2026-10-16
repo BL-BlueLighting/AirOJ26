@@ -1,5 +1,7 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) @session_start();
+header('Cache-Control: no-store, no-cache, must-revalidate');
+header('Pragma: no-cache');
 $page = basename($_SERVER['SCRIPT_NAME'], '.php');
 
 // 未安装时跳转安装向导
@@ -14,24 +16,29 @@ if ($page !== 'install') {
 $user = $_SESSION['airoj_user'] ?? null;
 $site_name = 'AirOJ';
 
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/functions.php';
+
 // Check admin status
 $is_admin = false;
 $site_logo = '';
 $site_favicon = '';
-if ($user) {
-    require_once __DIR__ . '/config.php';
-    require_once __DIR__ . '/db.php';
-    $priv = Database::fetchOne("SELECT * FROM privilege WHERE user_id=? AND right_str='administrator'", [$user['user_id']]);
-    $is_admin = (bool)$priv;
-}
-// Logo & Favicon from system_config
-if (class_exists('Database')) {
-    try {
-        $logo = Database::fetchOne("SELECT value FROM system_config WHERE key_name='site_logo'");
-        if ($logo) $site_logo = $logo['value'];
-        $fav = Database::fetchOne("SELECT value FROM system_config WHERE key_name='site_favicon'");
-        if ($fav) $site_favicon = $fav['value'];
-    } catch (Exception $e) {}
+$background_style = '';
+try {
+    if ($user) {
+        $priv = Database::fetchOne("SELECT * FROM privilege WHERE user_id=? AND right_str='administrator'", [$user['user_id']]);
+        $is_admin = (bool)$priv;
+    }
+    // Logo & Favicon & 站点背景 from system_config
+    $site_logo = Database::getConfig('site_logo');
+    $site_favicon = Database::getConfig('site_favicon');
+    // 背景：用户自定义优先，没有则回落到管理员配置的站点背景
+    $background_style = background_css(resolve_background($user));
+} catch (Exception $e) {}
+
+if ($background_style !== '') {
+    $body_class = trim(($body_class ?? '') . ' has-bg');
 }
 ?><!DOCTYPE html>
 <html lang="zh-CN">
@@ -39,9 +46,10 @@ if (class_exists('Database')) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= ($title ?? '首页') . ' — ' . $site_name ?></title>
-<link rel="stylesheet" href="/css/style.css">
-<?php if ($site_favicon): ?><link rel="icon" href="/<?=$site_favicon?>"><?php else: ?><link rel="icon" href="data:,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>✈</text></svg>"><?php endif; ?></head>
-<body>
+<link rel="stylesheet" href="/css/style.css?v=5">
+<?php if ($site_favicon): ?><link rel="icon" href="/<?=$site_favicon?>"><?php else: ?><link rel="icon" href="data:,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>✈</text></svg>"><?php endif; ?>
+<?php if ($background_style): ?><style>body{<?= $background_style ?>}</style><?php endif; ?></head>
+<body<?= !empty($body_class) ? ' class="' . htmlspecialchars($body_class) . '"' : '' ?>>
 
 <header class="site-header">
 <div class="header-inner">

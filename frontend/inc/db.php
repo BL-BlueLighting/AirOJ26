@@ -73,7 +73,45 @@ class Database
 
         static::$instance = $pdo;
         static::initTables($pdo);
+        static::ensureColumns($pdo);
         return $pdo;
+    }
+
+    /**
+     * 轻量自动迁移：为已存在的老库补齐后来新增的字段
+     * （CREATE TABLE IF NOT EXISTS 不会修改已存在的表，所以需要单独 ADD COLUMN）
+     * 每个字段写作 [SQLite 定义, MySQL 定义]
+     */
+    protected static function ensureColumns(PDO $pdo): void
+    {
+        $wanted = [
+            'users' => [
+                'bio'            => ['TEXT', 'LONGTEXT NULL'],
+                'twofa_secret'   => ['TEXT', 'VARCHAR(64) NULL DEFAULT NULL'],
+                'twofa_enabled'  => ['INTEGER NOT NULL DEFAULT 0', 'TINYINT NOT NULL DEFAULT 0'],
+                'background'     => ['TEXT', 'LONGTEXT NULL'],
+            ],
+            'submissions' => [
+                'contest_id' => ['INTEGER NOT NULL DEFAULT 0', 'INT NOT NULL DEFAULT 0'],
+            ],
+        ];
+        $mysql = (DB_DRIVER === 'mysql');
+        try {
+            foreach ($wanted as $table => $cols) {
+                $existing = [];
+                if ($mysql) {
+                    foreach ($pdo->query("SHOW COLUMNS FROM `$table`") as $r) $existing[] = $r['Field'];
+                } else {
+                    foreach ($pdo->query("PRAGMA table_info(`$table`)") as $r) $existing[] = $r['name'];
+                }
+                foreach ($cols as $col => $defs) {
+                    if (in_array($col, $existing, true)) continue;
+                    $pdo->exec("ALTER TABLE `$table` ADD COLUMN `$col` " . $defs[$mysql ? 1 : 0]);
+                }
+            }
+        } catch (PDOException $e) {
+            // 迁移失败不应影响正常访问
+        }
     }
 
     // ----- 建表 -----------------------------------------------------------
@@ -98,6 +136,7 @@ class Database
                     passed_cases    INTEGER NOT NULL DEFAULT 0,
                     result_json     TEXT,
                     user_id         TEXT    NOT NULL DEFAULT '',
+                    contest_id      INTEGER NOT NULL DEFAULT 0,
                     created_at      TEXT    NOT NULL DEFAULT (datetime('now','localtime')),
                     updated_at      TEXT    NOT NULL DEFAULT (datetime('now','localtime'))
                 )
@@ -114,6 +153,10 @@ class Database
                     solved_count    INT  NOT NULL DEFAULT 0,
                     submit_count    INT  NOT NULL DEFAULT 0,
                     rating          REAL NOT NULL DEFAULT 1500.0,
+                    bio             TEXT,
+                    twofa_secret    TEXT,
+                    twofa_enabled   INT  NOT NULL DEFAULT 0,
+                    background      TEXT,
                     reg_time        TEXT NOT NULL DEFAULT (datetime('now','localtime'))
                 )
             ");
@@ -141,7 +184,8 @@ class Database
                     news_id  INTEGER PRIMARY KEY AUTOINCREMENT,
                     title    TEXT NOT NULL DEFAULT '',
                     content  TEXT,
-                    time     TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+                    time     TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+                    pinned   INTEGER NOT NULL DEFAULT 0
                 )
             ");
             $pdo->exec("
@@ -162,6 +206,82 @@ class Database
                     contest_id  INT NOT NULL DEFAULT 0,
                     num         INT NOT NULL DEFAULT 0,
                     PRIMARY KEY (problem_id, contest_id)
+                )
+            ");
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS system_config (
+                    key_name TEXT PRIMARY KEY,
+                    value    TEXT NOT NULL DEFAULT ''
+                )
+            ");
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS solutions (
+                    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                    problem_id  INT NOT NULL DEFAULT 0,
+                    user_id     TEXT NOT NULL DEFAULT '',
+                    title       TEXT NOT NULL DEFAULT '',
+                    content     TEXT,
+                    created_at  TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+                )
+            ");
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS teams (
+                    team_id     INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name        TEXT NOT NULL DEFAULT '',
+                    description TEXT,
+                    owner       TEXT NOT NULL DEFAULT '',
+                    verified    INTEGER NOT NULL DEFAULT 0,
+                    created_at  TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+                )
+            ");
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS team_members (
+                    team_id  INT NOT NULL DEFAULT 0,
+                    user_id  TEXT NOT NULL DEFAULT '',
+                    role     TEXT NOT NULL DEFAULT 'member',
+                    status   TEXT NOT NULL DEFAULT 'approved',
+                    PRIMARY KEY (team_id, user_id)
+                )
+            ");
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS team_applications (
+                    team_id  INT NOT NULL DEFAULT 0,
+                    user_id  TEXT NOT NULL DEFAULT '',
+                    reason   TEXT,
+                    status   TEXT NOT NULL DEFAULT 'pending',
+                    PRIMARY KEY (team_id, user_id)
+                )
+            ");
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS privilege_log (
+                    log_id     INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id    TEXT NOT NULL DEFAULT '',
+                    admin_id   TEXT NOT NULL DEFAULT '',
+                    action     TEXT NOT NULL DEFAULT '',
+                    target     TEXT NOT NULL DEFAULT '',
+                    reason     TEXT,
+                    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+                )
+            ");
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS bbs_topic (
+                    topic_id    INTEGER PRIMARY KEY AUTOINCREMENT,
+                    problem_id  INTEGER NOT NULL DEFAULT 0,
+                    user_id     TEXT NOT NULL DEFAULT '',
+                    title       TEXT NOT NULL DEFAULT '',
+                    content     TEXT,
+                    reply_count INTEGER NOT NULL DEFAULT 0,
+                    last_reply  TEXT,
+                    created_at  TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+                )
+            ");
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS bbs_reply (
+                    reply_id   INTEGER PRIMARY KEY AUTOINCREMENT,
+                    topic_id   INTEGER NOT NULL DEFAULT 0,
+                    user_id    TEXT NOT NULL DEFAULT '',
+                    content    TEXT,
+                    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
                 )
             ");
         }
@@ -185,11 +305,13 @@ class Database
                 passed_cases    INT UNSIGNED    NOT NULL DEFAULT 0,
                 result_json     LONGTEXT,
                 user_id         VARCHAR(48)     NOT NULL DEFAULT '',
+                contest_id      INT             NOT NULL DEFAULT 0,
                 created_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 INDEX idx_problem (problem_id),
                 INDEX idx_status (status),
-                INDEX idx_user (user_id)
+                INDEX idx_user (user_id),
+                INDEX idx_contest (contest_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         ");
         $pdo->exec("
@@ -204,6 +326,10 @@ class Database
                 solved_count    INT UNSIGNED NOT NULL DEFAULT 0,
                 submit_count    INT UNSIGNED NOT NULL DEFAULT 0,
                 rating          DECIMAL(10,1) NOT NULL DEFAULT 1500.0,
+                bio             LONGTEXT,
+                twofa_secret    VARCHAR(64) NULL DEFAULT NULL,
+                twofa_enabled   TINYINT NOT NULL DEFAULT 0,
+                background      LONGTEXT NULL,
                 reg_time        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         ");
@@ -231,7 +357,8 @@ class Database
                 news_id  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 title    VARCHAR(200) NOT NULL DEFAULT '',
                 content  LONGTEXT,
-                time     DATETIME DEFAULT CURRENT_TIMESTAMP
+                time     DATETIME DEFAULT CURRENT_TIMESTAMP,
+                pinned   TINYINT NOT NULL DEFAULT 0
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         ");
         $pdo->exec("
@@ -252,6 +379,84 @@ class Database
                 contest_id  INT UNSIGNED NOT NULL DEFAULT 0,
                 num         INT UNSIGNED NOT NULL DEFAULT 0,
                 PRIMARY KEY (problem_id, contest_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS system_config (
+                key_name VARCHAR(100) PRIMARY KEY,
+                value    TEXT
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS solutions (
+                id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                problem_id INT NOT NULL DEFAULT 0,
+                user_id    VARCHAR(100) NOT NULL DEFAULT '',
+                title      VARCHAR(200) NOT NULL DEFAULT '',
+                content    LONGTEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS teams (
+                team_id     INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                name        VARCHAR(200) NOT NULL DEFAULT '',
+                description TEXT,
+                owner       VARCHAR(100) NOT NULL DEFAULT '',
+                verified    TINYINT NOT NULL DEFAULT 0,
+                created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS team_members (
+                team_id INT NOT NULL DEFAULT 0,
+                user_id VARCHAR(100) NOT NULL DEFAULT '',
+                role    VARCHAR(20) NOT NULL DEFAULT 'member',
+                status  VARCHAR(20) NOT NULL DEFAULT 'approved',
+                PRIMARY KEY (team_id, user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS team_applications (
+                team_id INT NOT NULL DEFAULT 0,
+                user_id VARCHAR(100) NOT NULL DEFAULT '',
+                reason  TEXT,
+                status  VARCHAR(20) NOT NULL DEFAULT 'pending',
+                PRIMARY KEY (team_id, user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS privilege_log (
+                log_id     INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                user_id    VARCHAR(100) NOT NULL DEFAULT '',
+                admin_id   VARCHAR(100) NOT NULL DEFAULT '',
+                action     VARCHAR(20) NOT NULL DEFAULT '',
+                target     VARCHAR(100) NOT NULL DEFAULT '',
+                reason     TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS bbs_topic (
+                topic_id    INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                problem_id  INT NOT NULL DEFAULT 0,
+                user_id     VARCHAR(100) NOT NULL DEFAULT '',
+                title       VARCHAR(200) NOT NULL DEFAULT '',
+                content     LONGTEXT,
+                reply_count INT NOT NULL DEFAULT 0,
+                last_reply  DATETIME NULL DEFAULT NULL,
+                created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_problem (problem_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS bbs_reply (
+                reply_id   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                topic_id   INT NOT NULL DEFAULT 0,
+                user_id    VARCHAR(100) NOT NULL DEFAULT '',
+                content    LONGTEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_topic (topic_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         ");
     }
@@ -298,5 +503,25 @@ class Database
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         return (int) $pdo->lastInsertId();
+    }
+
+    /**
+     * 写入 system_config（SQLite/MySQL 通用的 upsert，避免 INSERT OR REPLACE 的方言差异）
+     */
+    public static function setConfig(string $key, string $value): void
+    {
+        $n = static::exec("UPDATE system_config SET value=? WHERE key_name=?", [$value, $key]);
+        if ($n === 0) {
+            static::exec("INSERT INTO system_config (key_name, value) VALUES (?,?)", [$key, $value]);
+        }
+    }
+
+    /**
+     * 读取 system_config
+     */
+    public static function getConfig(string $key, string $default = ''): string
+    {
+        $row = static::fetchOne("SELECT value FROM system_config WHERE key_name=?", [$key]);
+        return $row ? (string) $row['value'] : $default;
     }
 }

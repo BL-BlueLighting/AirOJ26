@@ -176,6 +176,65 @@ setup_judgeserver() {
         sed -i 's/os\.chown(self\._submission_dir, SPJ_USER_UID, 0)/try:\n            os.chown(self._submission_dir, SPJ_USER_UID, 0)\n            os.chown(user_out_file_path, SPJ_USER_UID, 0)\n        except PermissionError:\n            logger.warning("spj chown failed (not root), continuing anyway")/' "$jc_py"
     fi
 
+    # Patch compiler.py / judge_client.py — 还原工作目录
+    # 编译时 chdir 到提交目录且不还原，该目录随后被删除，
+    # 会导致后续请求（尤其是 python/javascript 这类无编译步骤的语言）抛 FileNotFoundError
+    local compiler_py2="${JUDGE_DIR}/JudgeServer/server/compiler.py"
+    local judgeclient_py="${JUDGE_DIR}/JudgeServer/server/judge_client.py"
+    if grep -q 'AIRJ_FIX_CWD' "$compiler_py2" 2>/dev/null; then
+        ok "cwd 还原补丁已存在"
+    else
+        python3 - "$compiler_py2" "$judgeclient_py" << 'PYEOF'
+import sys
+
+compiler_py, judge_client_py = sys.argv[1], sys.argv[2]
+
+s = open(compiler_py, encoding="utf-8").read()
+s = s.replace("""        os.chdir(output_dir)
+        env = compile_config.get("env", [])""",
+"""        # AIRJ_FIX_CWD: 编译会把工作目录切到提交目录，该目录随后会被删除，
+        # 必须还原，否则后续请求（尤其是无编译步骤的 Python/JS）会因
+        # 当前目录不存在而抛出 FileNotFoundError。
+        try:
+            _saved_cwd = os.getcwd()
+        except OSError:
+            _saved_cwd = "/"
+        os.chdir(output_dir)
+        env = compile_config.get("env", [])""", 1)
+s = s.replace("""        result = _judger.run(max_cpu_time=compile_config["max_cpu_time"],""",
+"""        try:
+            result = _judger.run(max_cpu_time=compile_config["max_cpu_time"],""", 1)
+s = s.replace("""                             seccomp_rule_name=None,
+                             uid=COMPILER_USER_UID,""",
+"""                             seccomp_rule_name=None,
+                             # AIRJ_FIX_JAVA: Java 等语言编译时需要预留大量虚拟地址空间，
+                             # 允许按配置只做内存检查
+                             memory_limit_check_only=compile_config.get("memory_limit_check_only", 0),
+                             uid=COMPILER_USER_UID,""", 1)
+s = s.replace("""                             uid=COMPILER_USER_UID,
+                             gid=COMPILER_GROUP_GID)""",
+"""                                 uid=COMPILER_USER_UID,
+                                 gid=COMPILER_GROUP_GID)
+        finally:
+            # AIRJ_FIX_CWD: 无论编译成功与否都还原工作目录
+            os.chdir(_saved_cwd)""", 1)
+open(compiler_py, "w", encoding="utf-8").write(s)
+
+s = open(judge_client_py, encoding="utf-8").read()
+s = s.replace("""        saved_cwd = os.getcwd()
+        os.chdir("/")""",
+"""        # AIRJ_FIX_CWD: 工作目录可能已被删除（编译时 chdir 到临时目录），此处兜底
+        try:
+            saved_cwd = os.getcwd()
+        except FileNotFoundError:
+            os.chdir("/")
+            saved_cwd = "/"
+        os.chdir("/")""", 1)
+open(judge_client_py, "w", encoding="utf-8").write(s)
+PYEOF
+        ok "cwd 还原补丁已应用"
+    fi
+
     # Patch config.py — support env var overrides
     local cfg_py="${JUDGE_DIR}/JudgeServer/server/config.py"
     if grep -q 'os.environ.get("JUDGER_WORKSPACE_BASE"' "$cfg_py" 2>/dev/null; then

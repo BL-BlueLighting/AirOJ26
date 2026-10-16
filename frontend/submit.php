@@ -8,6 +8,21 @@ $pid = $_POST['pid'] ?? '';
 $lang = $_POST['language'] ?? '';
 $judgeType = $_POST['judge_type'] ?? 'standard';
 $source = $_POST['source'] ?? '';
+$cid = intval($_POST['cid'] ?? 0);
+
+// 上传文件模式：从上传的文件读取源码
+if (empty($source) && isset($_FILES['source_file']) && $_FILES['source_file']['error'] === UPLOAD_ERR_OK) {
+    $uploaded = $_FILES['source_file'];
+    if ($uploaded['size'] > 64 * 1024) {
+        header('Location: /problem.php?id=' . urlencode($pid) . '&err=' . urlencode('文件过大（上限 64KB）'));
+        exit;
+    }
+    $source = file_get_contents($uploaded['tmp_name']);
+    if ($source === false) {
+        header('Location: /problem.php?id=' . urlencode($pid) . '&err=' . urlencode('读取文件失败'));
+        exit;
+    }
+}
 
 if (empty($source) || empty($lang)) {
     header('Location: /problem.php?id=' . urlencode($pid) . '&err=' . urlencode('请选择语言并填写代码'));
@@ -19,7 +34,7 @@ if (!isset($langs[$lang])) {
     exit;
 }
 
-$result = submitJudge('', $judgeType, $source, $lang, $pid);
+$result = submitJudge('', $judgeType, $source, $lang, $pid, $cid);
 
 $sid = $result['judge_commitid'] ?? 0;
 header('Location: /result.php?id=' . $sid);

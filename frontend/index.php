@@ -5,17 +5,13 @@ require_once 'inc/config.php';
 require_once 'inc/db.php';
 require_once 'inc/functions.php';
 
-require_once 'inc/Parsedown.php';
-$pd = new Parsedown();
-
 $user = $_SESSION['airoj_user'] ?? null;
 $total  = Database::fetchOne("SELECT COUNT(*) AS c FROM submissions")['c'] ?? 0;
 $ac     = Database::fetchOne("SELECT COUNT(*) AS c FROM submissions WHERE score>=100")['c'] ?? 0;
 $pcount = count(array_filter(glob(INPUTS_DIR . '/*'), 'is_dir'));
 $ucount = Database::fetchOne("SELECT COUNT(*) AS c FROM users")['c'] ?? 0;
-$news   = Database::fetchAll("SELECT * FROM news ORDER BY pinned DESC, news_id DESC LIMIT 10");
-$pinned_news = array_filter($news, fn($n) => $n['pinned']);
-$normal_news = array_filter($news, fn($n) => !$n['pinned']);
+// 公告：HUSTOJ 风格，一次性列出全部（标题 + 日期）
+$news   = Database::fetchAll("SELECT * FROM news ORDER BY pinned DESC, news_id DESC LIMIT 50");
 $rank   = Database::fetchAll("SELECT user_id, nick, solved_count, submit_count, rating FROM users ORDER BY solved_count DESC, rating DESC LIMIT 10");
 
 // 今日运势
@@ -75,46 +71,27 @@ $fmsg = $fortune_msgs[$seed % count($fortune_msgs)];
 <div class="home-layout">
     <div class="home-main">
 
-        <!-- 公告 -->
+        <!-- 公告（HUSTOJ 风格：全部公告一次性列出，标题 + 日期） -->
         <?php if ($news): ?>
-        <div class="card" style="margin-bottom:16px">
-            <h2 style="border:none;padding-bottom:0;margin-bottom:12px">📢 公告</h2>
-
-            <?php foreach ($pinned_news as $n): ?>
-            <div style="padding:12px 0;border-bottom:1px solid var(--border)">
-                <div style="font-weight:700;margin-bottom:6px;color:var(--accent-gold)">📌 <?= htmlspecialchars($n['title']) ?></div>
-                <div style="font-size:14px;color:var(--text-secondary);line-height:1.7;overflow-x:auto"><?= $pd->text($n['content'] ?? '') ?></div>
-                <div style="font-size:11px;color:var(--text-muted);margin-top:6px"><?= $n['time'] ?></div>
+        <div class="card" style="margin-bottom:16px;padding:0">
+            <div style="padding:16px 20px 10px;font-weight:700;font-size:14px;display:flex;align-items:center">
+                📢 公告
+                <a href="/news.php" style="margin-left:auto;font-size:12px;font-weight:400">全部公告 →</a>
             </div>
-            <?php endforeach; ?>
-
-            <?php if ($normal_news): $first_normal = true; ?>
-            <div id="more-news" style="display:none">
-            <?php foreach ($normal_news as $n): ?>
-            <div style="padding:10px 0;border-bottom:1px solid var(--border)">
-                <div style="font-weight:600;margin-bottom:4px"><?= htmlspecialchars($n['title']) ?></div>
-                <div style="font-size:13px;color:var(--text-secondary);line-height:1.6;overflow-x:auto"><?= $pd->text(mb_substr($n['content'] ?? '', 0, 500)) ?></div>
-                <div style="font-size:11px;color:var(--text-muted);margin-top:4px"><?= $n['time'] ?></div>
-            </div>
-            <?php endforeach; ?>
-            </div>
-            <div style="text-align:center;padding-top:10px">
-                <a href="javascript:void(0)" onclick="toggleNews()" id="news-toggle-btn" style="font-size:13px;color:var(--accent)">📋 更多公告 ↓</a>
-            </div>
-            <script>
-            function toggleNews() {
-                var box = document.getElementById('more-news');
-                var btn = document.getElementById('news-toggle-btn');
-                if (box.style.display === 'none') {
-                    box.style.display = 'block';
-                    btn.textContent = '收起 ↑';
-                } else {
-                    box.style.display = 'none';
-                    btn.textContent = '📋 更多公告 ↓';
-                }
-            }
-            </script>
-            <?php endif; ?>
+            <table class="news-list">
+                <tbody>
+                <?php foreach ($news as $i => $n): ?>
+                <tr>
+                    <td class="news-idx"><?= $i + 1 ?></td>
+                    <td>
+                        <?php if (!empty($n['pinned'])): ?><span class="tag tag-gold">置顶</span> <?php endif; ?>
+                        <a href="/news.php?id=<?= $n['news_id'] ?>"><?= htmlspecialchars($n['title']) ?></a>
+                    </td>
+                    <td class="news-date"><?= htmlspecialchars(substr((string)$n['time'], 0, 10)) ?></td>
+                </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
         </div>
         <?php else: ?>
         <div class="card" style="margin-bottom:16px;text-align:center;padding:32px">
