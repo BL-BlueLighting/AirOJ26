@@ -1,26 +1,29 @@
-# AirOJ ✈
+<div align="center">
+    <img src="https://airoj.cn/file/2/AirOJ.png" />
+    <h1>AirOJ</h1>
+    <p>The open-source, beautiful and powerful online Judge system.</p>
+</div>
 
 基于 **QingdaoU Judger** 的在线评测系统。  
-科幻风格 UI · PHP + SQLite/MySQL · 支持多语言评测 · 团队系统 · 2FA · 完整管理后台
+由于本人时间不够，代码均由 AI 编写。
+同时经过本人 review 后再 git push。
 
 ---
 
 ## 功能特性
 
 | 模块 | 功能 |
-|------|------|
-| **评测引擎** | 对接 QingdaoU JudgeServer，支持 C/C++/Python/Java/Go/JavaScript |
-| **题目系统** | 创建/编辑/导入题目，支持 Markdown 描述，测试数据上传 |
-| **提交评测** | 实时同步评测，显示每个测试点结果（AC/WA/TLE/MLE/RE） |
-| **用户系统** | 注册/登录/2FA 二步验证/个人简介（Markdown） |
-| **角色系统** | 普通用户 · 版主（黄色） · 管理员（紫色） · 作弊者（💩） |
-| **团队系统** | 创建/管理团队，成员邀请，认证徽章 ✅ |
-| **题解系统** | 为每道题目编写 Markdown 题解 |
-| **管理后台** | 题目/用户/权限/公告/评测队列管理，权限日志 |
-| **排行榜** | 按 Solved + Rating 排序，角色颜色标识 |
-| **主题切换** | 暗色科幻风 / 亮色主题 |
-| **导入支持** | HydroOJ / HUSTOJ 题目 ZIP 批量导入 |
-| **多数据库** | 默认 SQLite，支持 MySQL |
+| ---- | ---- |
+| 评测引擎 | QingdaoU Judger |
+| 题目系统 | 题目支持 Markdown，支持快速迁移。 |
+| 用户系统 | 支持 2FA，团队、邮箱。 |
+| 分级系统 | ~~(舞萌？)~~ BASIC, ADVANCED, EXPERT, MASTER, Re: MASTER |
+| 团队系统 | 类似于旧 HustOJ 版 AirOJ 的团队系统，邀请、迁移、转让、解散 |
+| 题解系统 | Markdown 题解撰写 |
+| 管理后台 | 功能丰富的管理后台，权限日志等等 |
+| Rating 系统 | 复杂计算公式，多层分级。 |
+| 导入支持 | 支持 HydroOJ, HustOJ 导入。 |
+| 数据库支持 | 微小系统 SQLite，大型系统 MySQL。 |
 
 ## 快速开始
 
@@ -60,17 +63,7 @@ AirOJ/
 ├── judge/             ← QingdaoU Judger + JudgeServer
 ├── backend/           ← Flask 后端 API（可选）
 ├── inputs_outputs/    ← 测试数据目录
-└── .airojfront/       ← HUSTOJ 兼容前端
 ```
-
-## 角色颜色
-
-| 角色 | 颜色 | 显示 |
-|------|------|------|
-| 普通用户 | 白色 | `username` |
-| 版主 | 黄色 `#eab308` | **username** |
-| 管理员 | 紫色 `#a855f7` | **username** |
-| 作弊者 | 💩 棕色 `#8B4513` | 💩 username |
 
 ## License
 
