@@ -23,10 +23,10 @@ $status   = contest_status($contest);
 </style>
 
 <div class="page-header">
-    <h1>🏆 <?= htmlspecialchars($contest['title']) ?> — 排名</h1>
+    <h1><i class="fa-solid fa-trophy"></i> <?= htmlspecialchars($contest['title']) ?> — 排名</h1>
     <div>
-        <a href="contest_detail.php?cid=<?=$cid?>" class="btn btn-outline btn-sm">← 比赛首页</a>
-        <a href="contest_rank.php?cid=<?=$cid?>" class="btn btn-primary btn-sm">⟳ 刷新</a>
+        <a href="contest_detail.php?cid=<?=$cid?>" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> 比赛首页</a>
+        <a href="contest_rank.php?cid=<?=$cid?>" class="btn btn-primary btn-sm"><i class="fa-solid fa-rotate"></i> 刷新</a>
     </div>
 </div>
 
@@ -39,7 +39,7 @@ $status   = contest_status($contest);
 </div>
 
 <?php if (!$rows): ?>
-<div class="empty"><div class="icon">🏆</div><p>暂无提交记录</p></div>
+<div class="empty"><div class="icon"><i class="fa-solid fa-trophy"></i></div><p>暂无提交记录</p></div>
 <?php else: ?>
 <div class="card" style="padding:0"><div class="table-wrap"><table class="rank-table">
 <thead><tr>

@@ -8,7 +8,7 @@ if (!isset($_SESSION['airoj_user']) || !$is_admin) { header('Location: ../login.
 
 $privileges = Database::fetchAll("SELECT p.*, u.nick FROM privilege p LEFT JOIN users u ON p.user_id=u.user_id ORDER BY p.right_str, p.user_id");
 require __DIR__ . '/../inc/header.php'; ?>
-<div class="page-header"><h1>🔑 权限管理</h1><a href="privilege_add.php" class="btn btn-primary btn-sm">➕ 添加权限</a></div>
+<div class="page-header"><h1><i class="fa-solid fa-key"></i> 权限管理</h1><a href="privilege_add.php" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> 添加权限</a></div>
 <div class="card" style="padding:0"><div class="table-wrap"><table>
 <thead><tr><th>用户</th><th>权限</th><th>操作</th></tr></thead>
 <tbody>

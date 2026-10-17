@@ -12,7 +12,7 @@ $total = Database::fetchOne("SELECT COUNT(*) AS c FROM submissions")['c'] ?? 0;
 $rows = Database::fetchAll("SELECT * FROM submissions ORDER BY id DESC LIMIT ? OFFSET ?", [$limit, ($page-1)*$limit]);
 $maxP = max(1, ceil($total/$limit));
 require __DIR__ . '/../inc/header.php'; ?>
-<div class="page-header"><h1>⚡ 评测队列</h1></div>
+<div class="page-header"><h1><i class="fa-solid fa-bolt"></i> 评测队列</h1></div>
 <div class="card" style="padding:0"><div class="table-wrap"><table>
 <thead><tr><th>#</th><th>题目</th><th>用户</th><th>语言</th><th>状态</th><th>分数</th><th>操作</th></tr></thead>
 <tbody><?php foreach ($rows as $r): ?>

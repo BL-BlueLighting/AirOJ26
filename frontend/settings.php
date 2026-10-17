@@ -1,6 +1,5 @@
 <?php
 $title = '设置';
-require 'inc/header.php';
 require_once 'inc/config.php';
 require_once 'inc/db.php';
 require_once 'inc/functions.php';
@@ -16,6 +15,15 @@ $pd = new Parsedown();
 
 $err = ''; $ok = '';
 $tab = $_GET['tab'] ?? 'profile';
+$is_manager = (bool)Database::fetchOne("SELECT 1 AS x FROM privilege WHERE user_id=? AND right_str IN ('administrator','moderator')", [$uid]);
+
+/** 保存成功后重定向（必须在输出任何 HTML 之前，保证新主题/背景立即生效） */
+function settings_redirect(string $tab, string $msg): void
+{
+    $_SESSION['settings_flash'] = $msg;
+    header('Location: /settings.php?tab=' . $tab);
+    exit;
+}
 
 // 处理表单
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -23,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $bio = $_POST['bio'] ?? '';
         Database::exec("UPDATE users SET bio=? WHERE user_id=?", [$bio, $uid]);
         $_SESSION['airoj_user']['bio'] = $bio;
-        $ok = '简介已更新';
+        settings_redirect('profile', '简介已更新');
     }
     if (isset($_POST['enable_2fa'])) {
         $secret = $_POST['secret'] ?? '';
@@ -33,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($totp->verify($code)) {
                 Database::exec("UPDATE users SET twofa_secret=?, twofa_enabled=1 WHERE user_id=?", [$secret, $uid]);
                 $_SESSION['airoj_user']['twofa_enabled'] = 1;
-                $ok = '二步验证已启用';
+                settings_redirect('2fa', '二步验证已启用');
             } else { $err = '验证码错误，请重试'; }
         } else { $err = '参数错误'; }
     }
@@ -44,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($totp->verify($code)) {
                 Database::exec("UPDATE users SET twofa_enabled=0, twofa_secret=NULL WHERE user_id=?", [$uid]);
                 $_SESSION['airoj_user']['twofa_enabled'] = 0;
-                $ok = '二步验证已关闭';
+                settings_redirect('2fa', '二步验证已关闭');
             } else { $err = '验证码错误'; }
         } else { $err = '请输入验证码'; }
     }
@@ -63,16 +71,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 Database::exec("UPDATE users SET background=? WHERE user_id=?", [$bg, $uid]);
                 $_SESSION['airoj_user']['background'] = $bg;
-                $ok = $bg === '' ? '已恢复默认背景' : '背景已更新';
+                settings_redirect('background', $bg === '' ? '已恢复默认背景' : '背景已更新');
             }
         }
     }
     if (isset($_POST['clear_background'])) {
         Database::exec("UPDATE users SET background='' WHERE user_id=?", [$uid]);
         $_SESSION['airoj_user']['background'] = '';
-        $ok = '已恢复默认背景';
+        settings_redirect('background', '已恢复默认背景');
+    }
+    // 个人资料（昵称 / 邮箱 / 学校 / 名字颜色）
+    if (isset($_POST['update_profile'])) {
+        $nick   = trim($_POST['nick'] ?? '');
+        $email  = trim($_POST['email'] ?? '');
+        $school = trim($_POST['school'] ?? '');
+        if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $err = '邮箱格式不正确';
+        } else {
+            Database::exec("UPDATE users SET nick=?, email=?, school=? WHERE user_id=?", [$nick, $email, $school, $uid]);
+            $_SESSION['airoj_user']['nick']   = $nick;
+            $_SESSION['airoj_user']['email']  = $email;
+            $_SESSION['airoj_user']['school'] = $school;
+
+            if (array_key_exists('name_color', $_POST)) {
+                $c = (string)$_POST['name_color'];
+                if (!valid_name_color($c)) $c = '';
+                if (!$is_manager && in_array($c, ['role', 'split'], true)) $c = '';
+                Database::exec("UPDATE users SET name_color=? WHERE user_id=?", [$c, $uid]);
+                $_SESSION['airoj_user']['name_color'] = $c;
+            }
+            settings_redirect('profile', '个人资料已更新');
+        }
+    }
+    // 主题切换
+    if (isset($_POST['save_theme'])) {
+        $t = $_POST['theme'] ?? '';
+        if (valid_theme($t)) {
+            set_theme($t, $user);
+            settings_redirect('theme', '主题已切换为 ' . AIR_OJ_THEMES[$t]);
+        } else {
+            $err = '无效的主题';
+        }
     }
 }
+
+// 读取一次性提示
+$ok = $_SESSION['settings_flash'] ?? '';
+unset($_SESSION['settings_flash']);
 
 // 重新读取用户
 $user = Database::fetchOne("SELECT * FROM users WHERE user_id=?", [$uid]);
@@ -80,6 +125,8 @@ $user = Database::fetchOne("SELECT * FROM users WHERE user_id=?", [$uid]);
 // 生成 2FA 密钥（如果还没有且要展示设置界面）
 $new_secret = TOTP::generateSecret();
 $otpauth = TOTP::getOTPAuthURI($uid, $new_secret);
+
+require 'inc/header.php';
 ?>
 <style>
 .tab-bar { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 24px; }
@@ -88,44 +135,139 @@ $otpauth = TOTP::getOTPAuthURI($uid, $new_secret);
 .tab-bar a.active { color: var(--accent); border-bottom-color: var(--accent); }
 </style>
 
-<div class="page-header"><h1>⚙️ 账号设置</h1></div>
+<div class="page-header"><h1><i class="fa-solid fa-gear"></i> 账号设置</h1></div>
 
 <div class="tab-bar">
-    <a href="?tab=profile" class="<?=$tab==='profile'?'active':''?>">📝 个人简介</a>
-    <a href="?tab=background" class="<?=$tab==='background'?'active':''?>">🎨 页面背景</a>
-    <a href="?tab=2fa" class="<?=$tab==='2fa'?'active':''?>">🔐 二步验证</a>
-    <a href="?tab=password" class="<?=$tab==='password'?'active':''?>">🔑 修改密码</a>
+    <a href="?tab=profile" class="<?=$tab==='profile'?'active':''?>"><i class="fa-solid fa-pen-to-square"></i> 个人简介</a>
+    <a href="?tab=theme" class="<?=$tab==='theme'?'active':''?>"><i class="fa-solid fa-swatchbook"></i> 主题</a>
+    <a href="?tab=background" class="<?=$tab==='background'?'active':''?>"><i class="fa-solid fa-palette"></i> 页面背景</a>
+    <a href="?tab=2fa" class="<?=$tab==='2fa'?'active':''?>"><i class="fa-solid fa-lock"></i> 二步验证</a>
+    <a href="?tab=password" class="<?=$tab==='password'?'active':''?>"><i class="fa-solid fa-key"></i> 修改密码</a>
 </div>
 
 <?php if ($err): ?><div class="alert alert-error"><?= htmlspecialchars($err) ?></div><?php endif; ?>
 <?php if ($ok): ?><div class="alert alert-success"><?= htmlspecialchars($ok) ?></div><?php endif; ?>
 
 <?php if ($tab === 'profile'): ?>
-<div class="card" style="max-width:600px">
-    <h2>📝 个人简介</h2>
-    <p style="color:var(--text-secondary);font-size:13px;margin-bottom:12px">支持 Markdown 格式，将在你的个人主页显示。</p>
-    <form method="post">
-        <div class="form-group">
-            <textarea name="bio" class="form-input" style="min-height:150px" placeholder="介绍一下自己..."><?= htmlspecialchars($user['bio'] ?? '') ?></textarea>
+<?php
+$rating     = round($user['rating'] ?? 0);
+$total_sub  = (int)(Database::fetchOne("SELECT COUNT(*) AS c FROM submissions WHERE user_id=?", [$uid])['c'] ?? 0);
+$ac_sub     = (int)(Database::fetchOne("SELECT COUNT(*) AS c FROM submissions WHERE user_id=? AND score>=100", [$uid])['c'] ?? 0);
+$ac_count   = (int)(Database::fetchOne("SELECT COUNT(DISTINCT problem_id) AS c FROM submissions WHERE user_id=? AND score>=100 AND status='done'", [$uid])['c'] ?? 0);
+$email_md5  = md5(strtolower(trim($user['email'] ?? '')));
+$my_name_color = (string)($user['name_color'] ?? '');
+?>
+<div class="profile-wrap">
+    <div class="profile-side">
+        <div class="profile-avatar">
+            <img src="https://www.gravatar.com/avatar/<?= $email_md5 ?>?s=200&d=identicon" alt="avatar">
+            <div class="pname"><?= user_role_html($uid, $user['nick'] ?: $uid) ?></div>
+            <div class="pid"><?= htmlspecialchars($uid) ?></div>
         </div>
-        <button type="submit" name="update_bio" class="btn btn-primary">保存</button>
-    </form>
-    <?php if (!empty($user['bio'])): ?>
-    <div style="margin-top:16px;padding:16px;background:var(--bg-secondary);border-radius:var(--radius)">
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">预览：</div>
-        <div style="font-size:14px;color:var(--text-secondary);line-height:1.7"><?= $pd->text($user['bio']) ?></div>
+
+        <div class="profile-stats">
+            <div class="row"><span class="lbl">Rating</span><span class="val" style="color:var(--accent-gold)"><?= $rating ?></span></div>
+            <div class="row"><span class="lbl">已通过</span><span class="val" style="color:var(--green)"><?= $ac_count ?></span></div>
+            <div class="row"><span class="lbl">总提交</span><span class="val" style="color:var(--accent)"><?= $total_sub ?></span></div>
+            <div class="row"><span class="lbl">通过率</span><span class="val" style="color:var(--yellow)"><?= $total_sub > 0 ? round($ac_sub / $total_sub * 100, 1) : 0 ?>%</span></div>
+            <div class="row"><span class="lbl">AC 提交</span><span class="val" style="color:var(--green)"><?= $ac_sub ?></span></div>
+        </div>
+
+        <form method="post" class="profile-info">
+            <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">个人资料</div>
+            <div class="form-group" style="margin-bottom:10px">
+                <label>昵称</label>
+                <input type="text" name="nick" class="form-input" value="<?= htmlspecialchars($user['nick'] ?? '') ?>">
+            </div>
+            <div class="form-group" style="margin-bottom:10px">
+                <label>邮箱</label>
+                <input type="email" name="email" class="form-input" value="<?= htmlspecialchars($user['email'] ?? '') ?>">
+            </div>
+            <div class="form-group" style="margin-bottom:10px">
+                <label>学校</label>
+                <input type="text" name="school" class="form-input" value="<?= htmlspecialchars($user['school'] ?? '') ?>">
+            </div>
+            <?php if ($is_manager): ?>
+            <div class="form-group" style="margin-bottom:10px">
+                <label>名字颜色</label>
+                <select name="name_color" class="form-input">
+                    <option value="" <?= $my_name_color === '' ? 'selected' : '' ?>>跟随 Rating</option>
+                    <option value="role" <?= $my_name_color === 'role' ? 'selected' : '' ?>>管理颜色</option>
+                    <option value="split" <?= $my_name_color === 'split' ? 'selected' : '' ?>>平分（左 Rating / 右管理）</option>
+                    <option value="special" <?= $my_name_color === 'special' ? 'selected' : '' ?>>特殊四色渐变</option>
+                    <?php foreach (AIR_OJ_NAME_COLORS as $k => $v): ?>
+                    <option value="<?= $k ?>" <?= $my_name_color === $k ? 'selected' : '' ?>><?= htmlspecialchars($v['label']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <?php else: ?>
+            <p style="font-size:11px;color:var(--text-muted);margin-bottom:10px">名字颜色跟随 Rating 分级，管理员也可为你指定专属颜色。</p>
+            <?php endif; ?>
+            <button type="submit" name="update_profile" class="btn btn-primary btn-sm btn-block"><i class="fa-solid fa-floppy-disk"></i> 保存资料</button>
+        </form>
     </div>
-    <?php endif; ?>
+
+    <div class="profile-main">
+        <div class="card">
+            <h2><i class="fa-solid fa-pen-to-square"></i> 个人简介</h2>
+            <p style="color:var(--text-secondary);font-size:13px;margin-bottom:12px">支持 Markdown 格式，将在你的个人主页显示。</p>
+            <form method="post">
+                <div class="form-group">
+                    <textarea name="bio" class="form-input md-editor" style="min-height:180px" placeholder="介绍一下自己..."><?= htmlspecialchars($user['bio'] ?? '') ?></textarea>
+                </div>
+                <button type="submit" name="update_bio" class="btn btn-primary">保存简介</button>
+            </form>
+            <?php if (!empty($user['bio'])): ?>
+            <div style="margin-top:16px;padding:16px;background:var(--bg-secondary);border-radius:var(--radius)">
+                <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">预览：</div>
+                <div class="mdui-prose" style="font-size:14px;line-height:1.7"><?= $pd->text($user['bio']) ?></div>
+            </div>
+            <?php endif; ?>
+        </div>
+    </div>
 </div>
+<script src="/js/md-toolbar.js?v=1"></script>
+
+<?php elseif ($tab === 'theme'): ?>
+<?php $cur_theme = current_theme($user); ?>
+<div class="card" style="max-width:820px">
+    <h2><i class="fa-solid fa-swatchbook"></i> 主题</h2>
+    <p style="color:var(--text-secondary);font-size:13px;margin-bottom:14px">
+        选择后立即生效。登录用户的选择会保存到账号，换设备也保持一致。
+    </p>
+    <form method="post">
+        <div class="theme-grid">
+            <?php foreach (AIR_OJ_THEMES as $tk => $tl): ?>
+            <label class="theme-card <?= $cur_theme === $tk ? 'active' : '' ?>">
+                <input type="radio" name="theme" value="<?=$tk?>" <?= $cur_theme === $tk ? 'checked' : '' ?>>
+                <span class="theme-swatch theme-swatch-<?=$tk?>"></span>
+                <strong><?=htmlspecialchars($tl)?></strong>
+                <span><?= $tk === 'original' ? '暗色科幻（默认）' : ($tk === 'mdui3' ? 'Material Design 3 · 黑绿主色' : '白色简洁（HUSTOJ bshark 风格）') ?></span>
+            </label>
+            <?php endforeach; ?>
+        </div>
+        <button type="submit" name="save_theme" class="btn btn-primary" style="margin-top:16px">
+            <i class="fa-solid fa-floppy-disk"></i> 保存主题
+        </button>
+    </form>
+</div>
+<script>
+document.querySelectorAll('.theme-card input').forEach(function (r) {
+    r.addEventListener('change', function () {
+        document.querySelectorAll('.theme-card').forEach(function (c) { c.classList.remove('active'); });
+        r.closest('.theme-card').classList.add('active');
+    });
+});
+</script>
 
 <?php elseif ($tab === 'background'): ?>
 <?php
 $my_bg   = (string)($user['background'] ?? '');
 $site_bg = Database::getConfig('site_background');
-$bg_css  = background_css(resolve_background($user));
+$bg_css  = background_css(resolve_background($user), current_theme($user));
 ?>
 <div class="card" style="max-width:640px">
-    <h2>🎨 页面背景</h2>
+    <h2><i class="fa-solid fa-palette"></i> 页面背景</h2>
     <p style="color:var(--text-secondary);font-size:13px;margin-bottom:12px">
         可以上传图片，也可以填写图片地址、纯色（如 <code>#1a1a2a</code>）或渐变。
         <?php if ($site_bg): ?>管理员已配置站点背景，<strong>未自定义时会自动使用站点背景</strong>。<?php endif; ?>
@@ -164,13 +306,13 @@ $bg_css  = background_css(resolve_background($user));
 
 <?php elseif ($tab === '2fa'): ?>
 <div class="card" style="max-width:600px">
-    <h2>🔐 二步验证 (2FA)</h2>
+    <h2><i class="fa-solid fa-lock"></i> 二步验证 (2FA)</h2>
     <p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px">
         使用 Google Authenticator、Authy 等 TOTP 兼容应用扫码绑定，登录时需额外输入 6 位验证码。
     </p>
 
     <?php if ($user['twofa_enabled']): ?>
-    <div class="alert alert-success" style="margin-bottom:16px">✅ 二步验证已启用</div>
+    <div class="alert alert-success" style="margin-bottom:16px"><i class="fa-solid fa-circle-check"></i> 二步验证已启用</div>
     <form method="post" style="max-width:300px">
         <div class="form-group"><label>输入验证码以关闭</label>
             <input type="text" name="code" class="form-input" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="6 位验证码" required>
@@ -199,7 +341,7 @@ $bg_css  = background_css(resolve_background($user));
 
 <?php elseif ($tab === 'password'): ?>
 <div class="card" style="max-width:400px">
-    <h2>🔑 修改密码</h2>
+    <h2><i class="fa-solid fa-key"></i> 修改密码</h2>
     <form method="post" action="/modify.php">
         <div class="form-group"><label>原密码</label><input type="password" name="password_old" class="form-input" required></div>
         <div class="form-group"><label>新密码</label><input type="password" name="password_new" class="form-input" required></div>

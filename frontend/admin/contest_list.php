@@ -14,8 +14,8 @@ foreach (Database::fetchAll("SELECT contest_id, COUNT(*) AS c FROM contest_probl
 }
 require __DIR__ . '/../inc/header.php'; ?>
 <div class="page-header">
-    <h1>🏁 比赛管理</h1>
-    <a href="contest_edit.php?id=0" class="btn btn-primary btn-sm">➕ 添加比赛</a>
+    <h1><i class="fa-solid fa-flag-checkered"></i> 比赛管理</h1>
+    <a href="contest_edit.php?id=0" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> 添加比赛</a>
 </div>
 <div class="card" style="padding:0"><div class="table-wrap"><table>
 <thead><tr><th style="width:50px">#</th><th>名称</th><th style="width:70px">赛制</th><th style="width:60px">题目</th><th style="width:160px">开始</th><th style="width:160px">结束</th><th style="width:80px">状态</th><th style="width:200px">操作</th></tr></thead>

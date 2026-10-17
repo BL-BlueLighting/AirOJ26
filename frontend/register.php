@@ -5,6 +5,9 @@ require_once 'inc/db.php';
 if (session_status() === PHP_SESSION_NONE) @session_start();
 if (isset($_SESSION['airoj_user'])) { header('Location: /index.php'); exit; }
 
+$auth_theme = in_array($_COOKIE['airoj_theme'] ?? '', ['original', 'mdui3', 'bshark'], true)
+    ? $_COOKIE['airoj_theme'] : 'original';
+
 $err = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $uid = trim($_POST['user_id'] ?? '');
@@ -30,11 +33,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>注册 — AirOJ</title>
-<link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/fontawesome/css/all.min.css?v=6">
+<link rel="stylesheet" href="/css/style.css?v=13">
+<link rel="stylesheet" href="/css/themes.css?v=2">
 </head>
-<body style="display:flex;justify-content:center;align-items:center;min-height:100vh;background:var(--bg)">
+<body class="theme-<?= $auth_theme ?>" style="display:flex;justify-content:center;align-items:center;min-height:100vh;background:var(--bg-primary)">
 <div style="width:100%;max-width:400px;padding:20px">
-<div style="text-align:center;margin-bottom:24px"><a href="/" style="font-size:28px;font-weight:800;color:var(--text-primary);text-decoration:none">✈ <span style="color:var(--accent)">Air</span>OJ</a></div>
+<div style="text-align:center;margin-bottom:24px"><a href="/" style="font-size:28px;font-weight:800;color:var(--text-primary);text-decoration:none"><i class="fa-solid fa-plane"></i> <span style="color:var(--accent)">Air</span>OJ</a></div>
 <div class="card" style="padding:32px">
     <h1 style="text-align:center;font-size:20px;margin-bottom:24px">注册</h1>
     <?php if ($err): ?><div class="alert alert-error"><?= htmlspecialchars($err) ?></div><?php endif; ?>

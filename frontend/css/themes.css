@@ -1,0 +1,218 @@
+/* ═══════════════════════════════════════════════════
+   AirOJ — 主题
+   body.theme-original  默认暗色科幻（变量见 style.css）
+   body.theme-mdui3     Material Design 3 · 黑绿主色
+   body.theme-bshark    参照 HUSTOJ template/bshark 的白色主题
+   ═══════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────────
+   MDUI 3 —— 使用 mdui.org 官方 mdui.css
+   · 颜色/表面/描边全部取自 MDUI 官方设计令牌（--mdui-color-*）
+   · 黑绿主色通过覆盖 MDUI 的 -dark 调色板变量实现（官方推荐的自定义配色方式）
+   · 本段只做 AirOJ 变量 → MDUI 令牌的映射，不再手写一套近似的 Material 样式
+   ───────────────────────────────────────────── */
+body.theme-mdui3 {
+    /* —— MDUI 暗色配色（黑绿）—— */
+    --mdui-color-primary-dark: 74, 222, 128;
+    --mdui-color-on-primary-dark: 0, 56, 28;
+    --mdui-color-primary-container-dark: 0, 82, 42;
+    --mdui-color-on-primary-container-dark: 153, 247, 184;
+    --mdui-color-inverse-primary-dark: 0, 106, 56;
+    --mdui-color-secondary-dark: 176, 204, 187;
+    --mdui-color-on-secondary-dark: 27, 53, 37;
+    --mdui-color-secondary-container-dark: 49, 76, 59;
+    --mdui-color-on-secondary-container-dark: 204, 232, 214;
+    --mdui-color-tertiary-dark: 255, 213, 79;
+    --mdui-color-on-tertiary-dark: 60, 45, 0;
+    --mdui-color-tertiary-container-dark: 89, 68, 0;
+    --mdui-color-on-tertiary-container-dark: 255, 229, 143;
+    --mdui-color-surface-dark: 10, 15, 12;
+    --mdui-color-surface-dim-dark: 10, 15, 12;
+    --mdui-color-surface-bright-dark: 53, 63, 56;
+    --mdui-color-surface-container-lowest-dark: 5, 9, 6;
+    --mdui-color-surface-container-low-dark: 14, 21, 17;
+    --mdui-color-surface-container-dark: 19, 27, 22;
+    --mdui-color-surface-container-high-dark: 28, 38, 32;
+    --mdui-color-surface-container-highest-dark: 38, 50, 43;
+    --mdui-color-surface-variant-dark: 66, 81, 72;
+    --mdui-color-on-surface-dark: 226, 238, 230;
+    --mdui-color-on-surface-variant-dark: 190, 205, 196;
+    --mdui-color-inverse-surface-dark: 226, 238, 230;
+    --mdui-color-inverse-on-surface-dark: 27, 31, 28;
+    --mdui-color-background-dark: 10, 15, 12;
+    --mdui-color-on-background-dark: 226, 238, 230;
+    --mdui-color-outline-dark: 138, 152, 143;
+    --mdui-color-outline-variant-dark: 62, 75, 68;
+    --mdui-color-error-dark: 255, 180, 171;
+    --mdui-color-on-error-dark: 104, 0, 6;
+    --mdui-color-error-container-dark: 147, 0, 10;
+    --mdui-color-on-error-container-dark: 255, 218, 214;
+    --mdui-color-shadow-dark: 0, 0, 0;
+    --mdui-color-scrim-dark: 0, 0, 0;
+
+    /* —— AirOJ 变量 → MDUI 官方令牌 —— */
+    --bg-primary: rgb(var(--mdui-color-background));
+    --bg-secondary: rgb(var(--mdui-color-surface-container-low));
+    --bg-card: rgb(var(--mdui-color-surface-container));
+    --bg-hover: rgb(var(--mdui-color-surface-container-high));
+    --border: rgb(var(--mdui-color-outline-variant));
+    --border-light: rgb(var(--mdui-color-outline));
+
+    --text-primary: rgb(var(--mdui-color-on-surface));
+    --text-secondary: rgb(var(--mdui-color-on-surface-variant));
+    --text-muted: rgb(var(--mdui-color-outline));
+
+    --accent: rgb(var(--mdui-color-primary));
+    --accent-hover: color-mix(in srgb, rgb(var(--mdui-color-primary)) 82%, white);
+    --accent-gold: rgb(var(--mdui-color-tertiary));
+
+    --green: rgb(var(--mdui-color-primary));
+    --red: rgb(var(--mdui-color-error));
+    --yellow: rgb(var(--mdui-color-tertiary));
+    --green-bg: rgba(var(--mdui-color-primary-container), .55);
+    --red-bg: rgba(var(--mdui-color-error-container), .45);
+    --yellow-bg: rgba(var(--mdui-color-tertiary-container), .45);
+
+    --neutral-bg: rgb(var(--mdui-color-surface-container-high));
+    --info-bg: rgb(var(--mdui-color-secondary-container));
+    --gold-bg: rgba(var(--mdui-color-tertiary-container), .45);
+    --accent-bg: rgba(var(--mdui-color-primary-container), .55);
+    --accent-border: rgba(var(--mdui-color-primary), .5);
+    --overlay-header: rgba(var(--mdui-color-surface), .86);
+    --overlay-card: rgba(var(--mdui-color-surface-container), .84);
+    --logo-glow: rgba(var(--mdui-color-primary), .45);
+
+    --radius: 14px;
+    --radius-lg: 20px;
+    --shadow: 0 4px 24px rgba(var(--mdui-color-shadow), .55);
+
+    color-scheme: dark;
+}
+
+/* AirOJ 组件与 MDUI 外观的衔接（尺寸/形状，颜色均来自上面的令牌） */
+body.theme-mdui3 .site-header { background: var(--overlay-header); backdrop-filter: blur(14px); border-bottom-color: transparent; }
+body.theme-mdui3 .nav-link { border-radius: 999px; padding: 6px 14px; }
+body.theme-mdui3 .nav-link:hover,
+body.theme-mdui3 .nav-link.active { background: var(--accent-bg); color: var(--accent); }
+
+body.theme-mdui3 .btn,
+body.theme-mdui3 .btn-sm,
+body.theme-mdui3 .btn-xs { border-radius: 999px; }
+body.theme-mdui3 .btn-primary { background: var(--accent); color: rgb(var(--mdui-color-on-primary)); }
+body.theme-mdui3 .btn-primary:hover { background: var(--accent-hover); color: rgb(var(--mdui-color-on-primary)); }
+body.theme-mdui3 .btn-outline { border-color: rgb(var(--mdui-color-outline)); }
+body.theme-mdui3 .btn-outline:hover { background: var(--accent-bg); border-color: var(--accent); }
+
+body.theme-mdui3 .card,
+body.theme-mdui3 .stat-card,
+body.theme-mdui3 .auth-card,
+body.theme-mdui3 .admin-section { border-color: transparent; box-shadow: var(--shadow); }
+
+body.theme-mdui3 .form-input { background: var(--bg-secondary); border-color: transparent; border-radius: 12px; }
+body.theme-mdui3 .form-input:focus { background: var(--bg-card); border-color: var(--accent); }
+
+body.theme-mdui3 .tag,
+body.theme-mdui3 .badge { border-radius: 999px; }
+body.theme-mdui3 .sample-box,
+body.theme-mdui3 .code-block { background: rgb(var(--mdui-color-surface-container-lowest)); border-color: var(--border); }
+body.theme-mdui3 .pagination .page-link { border-radius: 999px; }
+body.theme-mdui3 .pw-left,
+body.theme-mdui3 .pw-test { border-color: transparent; box-shadow: var(--shadow); }
+body.theme-mdui3 .theme-select { border-radius: 999px; }
+
+/* ─────────────────────────────────────────────
+   bshark —— 白色主题（参照 HUSTOJ template/bshark）
+   ───────────────────────────────────────────── */
+body.theme-bshark {
+    --bg-primary: #fafbfa;
+    --bg-secondary: #ffffff;
+    --bg-card: #ffffff;
+    --bg-hover: #f1f3f5;
+    --border: #e6e9ec;
+    --border-light: #d5dae0;
+
+    --text-primary: #212529;
+    --text-secondary: #5a636b;
+    --text-muted: #9aa4ad;
+
+    --accent: #2185d0;
+    --accent-hover: #0067f4;
+    --accent-gold: #ffb400;
+
+    --green: #17c671;
+    --red: #c4183c;
+    --yellow: #e0a800;
+    --green-bg: #e8f9f0;
+    --red-bg: #fdecef;
+    --yellow-bg: #fff7e0;
+
+    --neutral-bg: #eef1f4;
+    --info-bg: #e9f4fc;
+    --gold-bg: #fff7e0;
+    --accent-bg: rgba(33, 133, 208, .1);
+    --accent-border: rgba(33, 133, 208, .35);
+    --overlay-header: rgba(255, 255, 255, .92);
+    --overlay-card: rgba(255, 255, 255, .9);
+    --logo-glow: rgba(33, 133, 208, .35);
+
+    --radius: 6px;
+    --radius-lg: 10px;
+    --shadow: 0 2px 10px rgba(33, 37, 41, .08);
+}
+
+/* 注意：body 的 background 由 style.css / 自定义背景控制，主题不要覆盖它 */
+body.theme-bshark .site-header {
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .05);
+}
+body.theme-bshark .site-footer { background: #fff; border-top-color: var(--border); }
+body.theme-bshark .nav-link { color: var(--text-secondary); }
+body.theme-bshark .nav-link:hover,
+body.theme-bshark .nav-link.active { color: var(--accent); background: var(--accent-bg); }
+
+body.theme-bshark .card,
+body.theme-bshark .stat-card,
+body.theme-bshark .auth-card,
+body.theme-bshark .admin-section,
+body.theme-bshark .rm-item { box-shadow: var(--shadow); }
+
+body.theme-bshark .btn-primary { color: #fff; }
+body.theme-bshark .btn-primary:hover { color: #fff; }
+body.theme-bshark .btn-success { color: #fff; }
+body.theme-bshark .btn-outline { color: var(--text-secondary); background: #fff; }
+body.theme-bshark .btn-outline:hover { background: var(--accent-bg); }
+
+body.theme-bshark .sample-box,
+body.theme-bshark .code-block { background: #f4f6f8; border-color: var(--border); }
+body.theme-bshark .form-input { background: #fff; border-color: var(--border-light); }
+body.theme-bshark .form-input:focus { border-color: var(--accent); }
+body.theme-bshark tbody tr:hover td { background: #f6f8fa; }
+body.theme-bshark .news-list tr:hover td { background: #f6f8fa; }
+
+body.theme-bshark .pw-left,
+body.theme-bshark .pw-test,
+body.theme-bshark .pw-toolbar { background: #fff; border-color: var(--border); }
+body.theme-bshark .pw-scroll { background: #fff; }
+body.theme-bshark .pw-pane-head { background: #f7f9fa; }
+
+body.theme-bshark .admin-sidebar { background: #fff; border-right-color: var(--border); }
+body.theme-bshark .admin-sidebar a:hover { background: #f1f3f5; }
+
+body.theme-bshark .theme-card { background: #fff; }
+body.theme-bshark .theme-select { background: #fff; }
+
+body.theme-bshark .alert-info { color: #1266a6; }
+body.theme-bshark .badge-done { color: #0e8a4f; }
+body.theme-bshark .badge-ac { color: #0e8a4f; }
+body.theme-bshark .badge-wa,
+body.theme-bshark .badge-re { color: #a3122f; }
+body.theme-bshark .badge-tle,
+body.theme-bshark .badge-mle,
+body.theme-bshark .badge-judging { color: #9a7400; }
+body.theme-bshark .tag-green { color: #0e8a4f; }
+body.theme-bshark .tag-red { color: #a3122f; }
+body.theme-bshark .tag-gold { color: #9a7400; }
+body.theme-bshark .tag-blue { color: #1266a6; }
+
+/* 白色主题下代码编辑器保持深色（Monaco vs-dark），无需处理 */

@@ -42,9 +42,9 @@ $qs = $_GET; unset($qs['page']);
 function page_url(array $qs, int $p): string { return '?' . http_build_query(array_merge($qs, ['page' => $p])); }
 ?>
 <div class="page-header">
-    <h1>📊 评测状态</h1>
+    <h1><i class="fa-solid fa-chart-simple"></i> 评测状态</h1>
     <?php if (!empty($_SESSION['airoj_user'])): ?>
-    <a href="?mine=1" class="btn btn-<?= $mine ? 'primary' : 'outline' ?> btn-sm">👤 我的提交</a>
+    <a href="?mine=1" class="btn btn-<?= $mine ? 'primary' : 'outline' ?> btn-sm"><i class="fa-solid fa-user"></i> 我的提交</a>
     <?php endif; ?>
 </div>
 
@@ -70,7 +70,7 @@ function page_url(array $qs, int $p): string { return '?' . http_build_query(arr
                 <option value="err" <?=$result === 'err' ? 'selected' : ''?>>等待 / 失败</option>
             </select></div>
         <div class="form-group" style="max-width:120px">
-            <button type="submit" class="btn btn-primary">🔍 筛选</button></div>
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-magnifying-glass"></i> 筛选</button></div>
         <div class="form-group" style="max-width:100px">
             <a href="status.php" class="btn btn-outline">重置</a></div>
     </form>

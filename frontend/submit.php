@@ -34,6 +34,13 @@ if (!isset($langs[$lang])) {
     exit;
 }
 
+// 越级限制（Re:MASTER 15 级不允许越级作答）
+$tierInfo = problem_tier_check($pid, $_SESSION['airoj_user'] ?? null);
+if ($tierInfo['blocked']) {
+    header('Location: /problem.php?id=' . urlencode($pid) . '&err=' . urlencode($tierInfo['message']));
+    exit;
+}
+
 $result = submitJudge('', $judgeType, $source, $lang, $pid, $cid);
 
 $sid = $result['judge_commitid'] ?? 0;

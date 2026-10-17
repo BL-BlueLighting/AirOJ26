@@ -7,7 +7,7 @@ require_once 'inc/functions.php';
 
 $id = intval($_GET['id'] ?? 0);
 $row = Database::fetchOne("SELECT * FROM submissions WHERE id=?", [$id]);
-if (!$row) { echo '<div class="empty"><div class="icon">🔍</div><p>提交记录不存在</p></div>'; require 'inc/footer.php'; exit; }
+if (!$row) { echo '<div class="empty"><div class="icon"><i class="fa-solid fa-magnifying-glass"></i></div><p>提交记录不存在</p></div>'; require 'inc/footer.php'; exit; }
 
 // 自动更新 solved 计数
 if ($row['status'] === 'done' && ($row['score'] ?? 0) >= 100) {
@@ -29,7 +29,7 @@ $cases = json_decode($row['result_json'] ?: '[]', true);
 $sc = $row['score'];
 $scCls = $sc >= 100 ? 'score-good' : ($sc >= 50 ? 'score-mid' : ($sc !== null ? 'score-bad' : 'score-na'));
 ?>
-<div class="page-header"><h1>📄 提交 #<?= $id ?> 详情</h1></div>
+<div class="page-header"><h1><i class="fa-solid fa-file-lines"></i> 提交 #<?= $id ?> 详情</h1></div>
 
 <div class="card">
     <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
@@ -57,9 +57,9 @@ $scCls = $sc >= 100 ? 'score-good' : ($sc >= 50 ? 'score-mid' : ($sc !== null ? 
         <span class="case-name">测试点 #<?= htmlspecialchars($c['name']) ?></span>
     </div><?php endforeach; ?></div>
     <?php elseif ($row['status']==='pending'||$row['status']==='judging'): ?>
-    <div class="empty"><p>⏳ 评测进行中...</p><p style="margin-top:8px"><a href="?id=<?=$id?>" class="btn btn-primary btn-sm">⟳ 刷新</a></p></div>
+    <div class="empty"><p><i class="fa-solid fa-hourglass-half"></i> 评测进行中...</p><p style="margin-top:8px"><a href="?id=<?=$id?>" class="btn btn-primary btn-sm"><i class="fa-solid fa-rotate"></i> 刷新</a></p></div>
     <?php elseif ($row['status']==='failed'): ?>
-    <div class="empty"><p>⚠ 评测失败</p>
+    <div class="empty"><p><i class="fa-solid fa-triangle-exclamation"></i> 评测失败</p>
     <div class="code-block" style="text-align:left;margin-top:8px;max-height:300px;font-size:12px;color:var(--red)"><?= htmlspecialchars($row['result_json'] ?? '') ?></div>
     </div>
     <?php else: ?><div class="empty"><p>暂无详情</p></div><?php endif; ?>

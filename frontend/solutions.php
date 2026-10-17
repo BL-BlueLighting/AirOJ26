@@ -28,8 +28,8 @@ $solutions = Database::fetchAll("SELECT s.*, u.nick FROM solutions s LEFT JOIN u
 $problem = Database::fetchOne("SELECT title FROM problem WHERE problem_id=?", [$pid]);
 ?>
 <div class="page-header">
-    <h1>📝 题解 — <?= $problem ? htmlspecialchars($problem['title']) : 'Problem #'.$pid ?></h1>
-    <a href="/problem.php?id=<?= $pid ?>" class="btn btn-outline btn-sm">← 返回题目</a>
+    <h1><i class="fa-solid fa-pen-to-square"></i> 题解 — <?= $problem ? htmlspecialchars($problem['title']) : 'Problem #'.$pid ?></h1>
+    <a href="/problem.php?id=<?= $pid ?>" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> 返回题目</a>
 </div>
 
 <?php if ($err): ?><div class="alert alert-error"><?= htmlspecialchars($err) ?></div><?php endif; ?>
@@ -37,7 +37,7 @@ $problem = Database::fetchOne("SELECT title FROM problem WHERE problem_id=?", [$
 
 <?php if ($user): ?>
 <div class="card" style="max-width:700px">
-    <h2>✏️ 撰写题解</h2>
+    <h2><i class="fa-solid fa-pen-to-square"></i> 撰写题解</h2>
     <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">支持 Markdown 格式</p>
     <form method="post">
         <div class="form-group"><label>标题</label><input type="text" name="title" class="form-input" required placeholder="题解标题"></div>
@@ -55,7 +55,7 @@ $problem = Database::fetchOne("SELECT title FROM problem WHERE problem_id=?", [$
         <h2 style="border:none;padding:0;margin:0;font-size:16px"><?= htmlspecialchars($s['title']) ?></h2>
         <div style="font-size:12px;color:var(--text-muted)"><?= user_role_html($s['user_id'], $s['nick']?:$s['user_id']) ?> · <?= $s['created_at'] ?></div>
     </div>
-    <div style="font-size:14px;color:var(--text-secondary);line-height:1.7;overflow-x:auto"><?= $pd->text($s['content']) ?></div>
+    <div class="mdui-prose" style="font-size:14px;line-height:1.7;overflow-x:auto"><?= $pd->text($s['content']) ?></div>
 </div>
 <?php endforeach; ?>
 </div>

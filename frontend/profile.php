@@ -27,33 +27,8 @@ $subs = Database::fetchAll("SELECT id,problem_id,judge_lang,status,score FROM su
 // 邮箱 MD5 用于 Gravatar
 $email_md5 = md5(strtolower(trim($user['email'] ?? '')));
 require 'inc/header.php'; ?>
-<style>
-.profile-wrap { display: flex; gap: 24px; align-items: flex-start; }
-.profile-side { width: 260px; flex-shrink: 0; }
-.profile-main { flex: 1; min-width: 0; }
-@media (max-width: 768px) { .profile-wrap { flex-direction: column; } .profile-side { width: 100%; } }
 
-.profile-avatar { text-align: center; padding: 24px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 16px; }
-.profile-avatar img { width: 100px; height: 100px; border-radius: 50%; border: 3px solid var(--border); margin-bottom: 12px; }
-.profile-avatar .pname { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
-.profile-avatar .pid { font-size: 13px; color: var(--text-muted); }
-
-.profile-stats { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 16px; }
-.profile-stats .row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
-.profile-stats .row:last-child { border-bottom: none; }
-.profile-stats .row .lbl { color: var(--text-muted); }
-.profile-stats .row .val { font-weight: 600; }
-
-.profile-info { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; }
-.profile-info .row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 13px; }
-.profile-info .row .lbl { color: var(--text-muted); }
-.profile-info .row .val { text-align: right; color: var(--text-secondary); word-break: break-all; }
-
-.solved-tag { display: inline-block; padding: 2px 10px; margin: 3px; border-radius: 4px; font-size: 13px; background: var(--bg-secondary); border: 1px solid var(--border); color: var(--green); text-decoration: none; transition: all .2s; }
-.solved-tag:hover { border-color: var(--green); background: var(--green-bg); }
-</style>
-
-<div class="page-header"><h1>👤 个人中心</h1></div>
+<div class="page-header"><h1><i class="fa-solid fa-user"></i> 个人中心</h1></div>
 
 <div class="profile-wrap">
     <div class="profile-side">
@@ -81,14 +56,14 @@ require 'inc/header.php'; ?>
         </div>
 
         <div style="margin-top:12px;text-align:center">
-            <a href="/modify.php" class="btn btn-outline btn-sm">⚙️ 修改资料</a>
+            <a href="/settings.php?tab=profile" class="btn btn-outline btn-sm"><i class="fa-solid fa-gear"></i> 修改资料</a>
         </div>
     </div>
 
     <div class="profile-main">
         <!-- 已通过题目 -->
         <div class="card">
-            <h2>✅ 已通过题目 (<?= $ac_count ?>)</h2>
+            <h2><i class="fa-solid fa-circle-check"></i> 已通过题目 (<?= $ac_count ?>)</h2>
             <?php if ($ac_problems): ?>
             <div style="line-height:2">
                 <?php foreach ($ac_problems as $p): ?>
@@ -102,7 +77,7 @@ require 'inc/header.php'; ?>
 
         <!-- 最近提交 -->
         <div class="card" style="padding:0">
-            <div style="padding:16px 20px 0;font-weight:700;font-size:14px">📊 最近提交</div>
+            <div style="padding:16px 20px 0;font-weight:700;font-size:14px"><i class="fa-solid fa-chart-simple"></i> 最近提交</div>
             <?php if ($subs): ?>
             <div class="table-wrap">
                 <table>

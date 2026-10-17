@@ -7,6 +7,10 @@ require_once 'inc/TOTP.php';
 if (session_status() === PHP_SESSION_NONE) @session_start();
 if (isset($_SESSION['airoj_user'])) { header('Location: /index.php'); exit; }
 
+// 登录页使用 cookie 中的主题（未登录时没有账号设置）
+$auth_theme = in_array($_COOKIE['airoj_theme'] ?? '', ['original', 'mdui3', 'bshark'], true)
+    ? $_COOKIE['airoj_theme'] : 'original';
+
 $err = '';
 $show_2fa = false;
 $temp_uid = '';
@@ -55,9 +59,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>登录 — AirOJ</title>
-<link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/fontawesome/css/all.min.css?v=6">
+<link rel="stylesheet" href="/css/style.css?v=13">
+<link rel="stylesheet" href="/css/themes.css?v=2">
 <style>
-.auth-wrap { display: flex; justify-content: center; align-items: center; min-height: 100vh; background: var(--bg); }
+.auth-wrap { display: flex; justify-content: center; align-items: center; min-height: 100vh; background: var(--bg-primary); }
 .auth-box { width: 100%; max-width: 400px; padding: 20px; }
 .auth-logo { text-align: center; margin-bottom: 24px; }
 .auth-logo a { font-size: 28px; font-weight: 800; color: var(--text-primary); text-decoration: none; }
@@ -68,21 +74,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 .twofa-inputs input {
     width: 44px; height: 52px; text-align: center; font-size: 22px; font-weight: 700;
     border: 2px solid var(--border); border-radius: var(--radius);
-    background: var(--bg-input); color: var(--text-primary);
+    background: var(--bg-secondary); color: var(--text-primary);
     outline: none; transition: border-color .2s;
 }
 .twofa-inputs input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(77,166,255,.2); }
 .twofa-inputs input.filled { border-color: var(--green); }
 </style>
 </head>
-<body>
+<body class="theme-<?= $auth_theme ?>">
 <div class="auth-wrap">
 <div class="auth-box">
-<div class="auth-logo"><a href="/">✈ <span>Air</span>OJ</a></div>
+<div class="auth-logo"><a href="/"><i class="fa-solid fa-plane"></i> <span>Air</span>OJ</a></div>
 
 <div class="card" style="padding:32px">
     <?php if ($show_2fa): ?>
-    <h1 style="text-align:center;font-size:20px;margin-bottom:8px">🔐 二步验证</h1>
+    <h1 style="text-align:center;font-size:20px;margin-bottom:8px"><i class="fa-solid fa-lock"></i> 二步验证</h1>
     <p style="text-align:center;color:var(--text-secondary);font-size:13px;margin-bottom:8px">
         请在下方输入验证器中的 6 位验证码
     </p>
@@ -101,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <button type="submit" class="btn btn-primary btn-block" id="twofa-submit" disabled>验证</button>
     </form>
 
-    <div style="text-align:center;margin-top:12px"><a href="/login.php" style="font-size:13px">← 返回登录</a></div>
+    <div style="text-align:center;margin-top:12px"><a href="/login.php" style="font-size:13px"><i class="fa-solid fa-arrow-left"></i> 返回登录</a></div>
 
     <script>
     const inputs = document.querySelectorAll('.twofa-input');

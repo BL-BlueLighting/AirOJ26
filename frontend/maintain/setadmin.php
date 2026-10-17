@@ -31,4 +31,4 @@ if ($existing) {
 }
 
 Database::insert("INSERT INTO privilege (user_id, right_str) VALUES (?, 'administrator')", [$username]);
-echo "✅ 用户 '$username' 已被设置为管理员\n";
+echo "用户 '$username' 已被设置为管理员\n";

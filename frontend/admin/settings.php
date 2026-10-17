@@ -83,13 +83,13 @@ $site_favicon = Database::getConfig('site_favicon');
 $site_background = Database::getConfig('site_background');
 $site_footer = Database::getConfig('site_footer');
 require __DIR__ . '/../inc/header.php'; ?>
-<div class="page-header"><h1>⚙️ 系统设置</h1></div>
+<div class="page-header"><h1><i class="fa-solid fa-gear"></i> 系统设置</h1></div>
 
 <?php if ($err): ?><div class="alert alert-error"><?=htmlspecialchars($err)?></div><?php endif; ?>
 <?php if ($ok): ?><div class="alert alert-success"><?=htmlspecialchars($ok)?></div><?php endif; ?>
 
 <div class="card" style="max-width:600px">
-    <h2>🖼️ Logo 设置</h2>
+    <h2><i class="fa-solid fa-image"></i> Logo 设置</h2>
     <p style="color:var(--text-secondary);font-size:13px;margin-bottom:12px">上传后将在左上角显示。建议尺寸: 高 32px，格式 PNG/SVG。</p>
     <?php if ($site_logo): ?>
     <div style="margin-bottom:12px;padding:12px;background:var(--bg-secondary);border-radius:var(--radius);display:flex;align-items:center;gap:12px">
@@ -107,7 +107,7 @@ require __DIR__ . '/../inc/header.php'; ?>
 </div>
 
 <div class="card" style="max-width:600px">
-    <h2>🌟 Favicon 设置</h2>
+    <h2><i class="fa-solid fa-star"></i> Favicon 设置</h2>
     <p style="color:var(--text-secondary);font-size:13px;margin-bottom:12px">上传后将替换浏览器标签页图标。推荐 32×32 的 ICO 或 PNG。</p>
     <?php if ($site_favicon): ?>
     <div style="margin-bottom:12px;padding:12px;background:var(--bg-secondary);border-radius:var(--radius);display:flex;align-items:center;gap:12px">
@@ -125,7 +125,7 @@ require __DIR__ . '/../inc/header.php'; ?>
 </div>
 
 <div class="card" style="max-width:600px">
-    <h2>🎨 站点背景</h2>
+    <h2><i class="fa-solid fa-palette"></i> 站点背景</h2>
     <p style="color:var(--text-secondary);font-size:13px;margin-bottom:12px">
         设置后，<strong>没有自定义背景的用户会自动使用该背景</strong>；已自定义的用户不受影响。
         支持上传图片，或填写图片地址 / 纯色（<code>#1a1a2a</code>）/ 渐变。
@@ -133,7 +133,7 @@ require __DIR__ . '/../inc/header.php'; ?>
     <?php if ($site_background): ?>
     <div style="margin-bottom:12px;padding:12px;background:var(--bg-secondary);border-radius:var(--radius)">
         <div style="height:90px;border-radius:var(--radius);overflow:hidden;position:relative;background:var(--bg-primary);margin-bottom:8px">
-            <div style="position:absolute;inset:0;<?= background_css($site_background) ?>"></div>
+            <div style="position:absolute;inset:0;<?= background_css($site_background, current_theme($_SESSION['airoj_user'] ?? null)) ?>"></div>
         </div>
         <div style="display:flex;align-items:center;gap:12px">
             <span style="font-size:12px;color:var(--text-muted);word-break:break-all"><?=htmlspecialchars($site_background)?></span>
@@ -152,7 +152,7 @@ require __DIR__ . '/../inc/header.php'; ?>
 </div>
 
 <div class="card" style="max-width:600px">
-    <h2>📄 页脚设置</h2>
+    <h2><i class="fa-solid fa-file-lines"></i> 页脚设置</h2>
     <p style="color:var(--text-secondary);font-size:13px;margin-bottom:12px">
         支持 Markdown，显示在页脚版权行<strong>上方</strong>。<br>
         版权行 <code>&amp;copy; Copyright <?= date('Y') ?> BL.BlueLighting &amp; AirOJ DX Team.</code> 由程序强制输出，无法通过此处修改。

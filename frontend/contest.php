@@ -13,7 +13,7 @@ foreach (Database::fetchAll("SELECT contest_id, COUNT(*) AS c FROM contest_probl
     $counts[(int)$r['contest_id']] = (int)$r['c'];
 }
 ?>
-<div class="page-header"><h1>🏁 比赛列表</h1></div>
+<div class="page-header"><h1><i class="fa-solid fa-flag-checkered"></i> 比赛列表</h1></div>
 
 <?php if ($contests): ?>
 <div class="card" style="padding:0"><div class="table-wrap"><table>
@@ -26,7 +26,7 @@ $cls = contest_status_color($sts);
 <tr>
 <td><?=$c['contest_id']?></td>
 <td><a href="contest_detail.php?cid=<?=$c['contest_id']?>"><?=htmlspecialchars($c['title'])?></a>
-    <?php if (($c['private'] ?? '0') === '1'): ?><span class="tag tag-gold">🔒 私有</span><?php endif; ?>
+    <?php if (($c['private'] ?? '0') === '1'): ?><span class="tag tag-gold"><i class="fa-solid fa-lock"></i> 私有</span><?php endif; ?>
 </td>
 <td><?= ((int)($c['contest_type'] ?? 0) === 1) ? 'OI' : 'ICPC' ?></td>
 <td><?= $counts[(int)$c['contest_id']] ?? 0 ?></td>

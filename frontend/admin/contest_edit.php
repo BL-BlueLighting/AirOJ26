@@ -67,8 +67,8 @@ if ($id) {
 }
 require __DIR__ . '/../inc/header.php'; ?>
 <div class="page-header">
-    <h1><?= $id ? '✏️ 编辑比赛 #' . $id : '➕ 添加比赛' ?></h1>
-    <a href="contest_list.php" class="btn btn-outline btn-sm">← 返回列表</a>
+    <h1><?= $id ? '<i class="fa-solid fa-pen-to-square"></i> 编辑比赛 #' . $id : '<i class="fa-solid fa-plus"></i> 添加比赛' ?></h1>
+    <a href="contest_list.php" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> 返回列表</a>
 </div>
 <div class="card" style="max-width:800px">
     <?php if ($err): ?><div class="alert alert-error"><?=htmlspecialchars($err)?></div><?php endif; ?>
@@ -116,7 +116,7 @@ require __DIR__ . '/../inc/header.php'; ?>
 
 <?php if ($id): ?>
 <div class="card" style="max-width:800px">
-    <h2>📋 已关联题目</h2>
+    <h2><i class="fa-solid fa-clipboard-list"></i> 已关联题目</h2>
     <?php if ($linked): ?>
     <table><thead><tr><th style="width:60px">题号</th><th>题目 ID</th><th>标题</th></tr></thead><tbody>
     <?php foreach ($linked as $i => $pid): $p = Database::fetchOne("SELECT title FROM problem WHERE problem_id=?", [$pid]); ?>

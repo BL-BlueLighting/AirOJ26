@@ -74,6 +74,7 @@ class Database
         static::$instance = $pdo;
         static::initTables($pdo);
         static::ensureColumns($pdo);
+        static::seedInitialData($pdo);
         return $pdo;
     }
 
@@ -90,6 +91,20 @@ class Database
                 'twofa_secret'   => ['TEXT', 'VARCHAR(64) NULL DEFAULT NULL'],
                 'twofa_enabled'  => ['INTEGER NOT NULL DEFAULT 0', 'TINYINT NOT NULL DEFAULT 0'],
                 'background'     => ['TEXT', 'LONGTEXT NULL'],
+                'fortune_drawn'  => ['TEXT', 'VARCHAR(10) NULL DEFAULT NULL'],
+                'theme'          => ["TEXT NOT NULL DEFAULT 'original'", "VARCHAR(20) NOT NULL DEFAULT 'original'"],
+                'name_split'     => ['INTEGER NOT NULL DEFAULT 1', 'TINYINT NOT NULL DEFAULT 1'],
+                'name_color'     => ["TEXT NOT NULL DEFAULT ''", "VARCHAR(20) NOT NULL DEFAULT ''"],
+            ],
+            'problem' => [
+                'tags'     => ['TEXT', 'LONGTEXT'],
+                'author'   => ["TEXT NOT NULL DEFAULT ''", "VARCHAR(100) NOT NULL DEFAULT ''"],
+                'group_id' => ['INTEGER NOT NULL DEFAULT 0', 'INT NOT NULL DEFAULT 0'],
+            ],
+            'teams' => [
+                'avatar'        => ['TEXT', 'VARCHAR(255) NULL'],
+                'verify_reason' => ['TEXT', 'TEXT'],
+                'verify_status' => ["TEXT NOT NULL DEFAULT 'none'", "VARCHAR(16) NOT NULL DEFAULT 'none'"],
             ],
             'submissions' => [
                 'contest_id' => ['INTEGER NOT NULL DEFAULT 0', 'INT NOT NULL DEFAULT 0'],
@@ -111,6 +126,50 @@ class Database
             }
         } catch (PDOException $e) {
             // 迁移失败不应影响正常访问
+        }
+    }
+
+    /**
+     * 初始数据：题库为空时建立 1000 A+B Problem
+     * （problem_id 显式写 1000，AUTOINCREMENT 会从 1001 继续）
+     */
+    protected static function seedInitialData(PDO $pdo): void
+    {
+        try {
+            if ((int)$pdo->query("SELECT COUNT(*) FROM problem")->fetchColumn() > 0) return;
+
+            $stmt = $pdo->prepare("INSERT INTO problem
+                (problem_id, title, description, input, output, sample_input, sample_output, hint, source, tags, author, spj, defunct)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)");
+            $stmt->execute([
+                1000,
+                'A+B Problem',
+                "输入两个整数 \$a\$ 和 \$b\$，输出它们的和。",
+                "一行两个整数 \$a, b\$。",
+                "一个整数，表示 \$a+b\$。",
+                "1 2",
+                "3",
+                "数据范围：\$-10^9 \\le a,b \\le 10^9\$。",
+                'AirOJ',
+                '入门,数学',
+                'AirOJ',
+                '0',
+                'N',
+            ]);
+            // SQLite 的 AUTOINCREMENT 会记住历史最大值，这里显式回到 1000，保证下一题是 1001
+            if (DB_DRIVER !== 'mysql') {
+                $pdo->exec("UPDATE sqlite_sequence SET seq=1000 WHERE name='problem'");
+            }
+
+            $pdo->exec("INSERT INTO problem_difficulty (problem_id, category, level, position) VALUES (1000, 'BASIC', 1, 'low')");
+
+            // 初始测试数据
+            $dir = INPUTS_DIR . '/1000';
+            if (!is_dir($dir)) @mkdir($dir, 0755, true);
+            if (!is_file($dir . '/1.in'))  @file_put_contents($dir . '/1.in', "1 2\n");
+            if (!is_file($dir . '/1.out')) @file_put_contents($dir . '/1.out', "3\n");
+        } catch (Throwable $e) {
+            // 种子失败不影响正常使用
         }
     }
 
@@ -152,11 +211,15 @@ class Database
                     submit          INT  NOT NULL DEFAULT 0,
                     solved_count    INT  NOT NULL DEFAULT 0,
                     submit_count    INT  NOT NULL DEFAULT 0,
-                    rating          REAL NOT NULL DEFAULT 1500.0,
+                    rating          REAL NOT NULL DEFAULT 0.0,
                     bio             TEXT,
                     twofa_secret    TEXT,
                     twofa_enabled   INT  NOT NULL DEFAULT 0,
                     background      TEXT,
+                    fortune_drawn   TEXT,
+                    theme           TEXT NOT NULL DEFAULT 'original',
+                    name_split      INT  NOT NULL DEFAULT 1,
+                    name_color      TEXT NOT NULL DEFAULT '',
                     reg_time        TEXT NOT NULL DEFAULT (datetime('now','localtime'))
                 )
             ");
@@ -168,6 +231,9 @@ class Database
                     sample_input    TEXT, sample_output TEXT,
                     spj             TEXT NOT NULL DEFAULT '0',
                     hint            TEXT, source TEXT,
+                    tags            TEXT,
+                    author          TEXT NOT NULL DEFAULT '',
+                    group_id        INTEGER NOT NULL DEFAULT 0,
                     in_date         TEXT NOT NULL DEFAULT (datetime('now','localtime')),
                     defunct         TEXT NOT NULL DEFAULT 'N'
                 )
@@ -231,6 +297,9 @@ class Database
                     description TEXT,
                     owner       TEXT NOT NULL DEFAULT '',
                     verified    INTEGER NOT NULL DEFAULT 0,
+                    avatar      TEXT,
+                    verify_reason TEXT,
+                    verify_status TEXT NOT NULL DEFAULT 'none',
                     created_at  TEXT NOT NULL DEFAULT (datetime('now','localtime'))
                 )
             ");
@@ -261,6 +330,15 @@ class Database
                     target     TEXT NOT NULL DEFAULT '',
                     reason     TEXT,
                     created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+                )
+            ");
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS problem_difficulty (
+                    problem_id INTEGER NOT NULL DEFAULT 0,
+                    category   TEXT NOT NULL DEFAULT 'BASIC',
+                    level      INTEGER NOT NULL DEFAULT 1,
+                    position   TEXT NOT NULL DEFAULT 'mid',
+                    PRIMARY KEY (problem_id, category, level, position)
                 )
             ");
             $pdo->exec("
@@ -325,11 +403,15 @@ class Database
                 submit          INT UNSIGNED NOT NULL DEFAULT 0,
                 solved_count    INT UNSIGNED NOT NULL DEFAULT 0,
                 submit_count    INT UNSIGNED NOT NULL DEFAULT 0,
-                rating          DECIMAL(10,1) NOT NULL DEFAULT 1500.0,
+                rating          DECIMAL(10,1) NOT NULL DEFAULT 0.0,
                 bio             LONGTEXT,
                 twofa_secret    VARCHAR(64) NULL DEFAULT NULL,
                 twofa_enabled   TINYINT NOT NULL DEFAULT 0,
                 background      LONGTEXT NULL,
+                fortune_drawn   VARCHAR(10) NULL DEFAULT NULL,
+                theme           VARCHAR(20) NOT NULL DEFAULT 'original',
+                name_split      TINYINT NOT NULL DEFAULT 1,
+                name_color      VARCHAR(20) NOT NULL DEFAULT '',
                 reg_time        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         ");
@@ -341,6 +423,9 @@ class Database
                 sample_input    LONGTEXT, sample_output LONGTEXT,
                 spj             CHAR(1) NOT NULL DEFAULT '0',
                 hint            LONGTEXT, source VARCHAR(200) DEFAULT '',
+                tags            LONGTEXT,
+                author          VARCHAR(100) NOT NULL DEFAULT '',
+                group_id        INT NOT NULL DEFAULT 0,
                 in_date         DATETIME DEFAULT CURRENT_TIMESTAMP,
                 defunct         CHAR(1) NOT NULL DEFAULT 'N'
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
@@ -434,6 +519,15 @@ class Database
                 target     VARCHAR(100) NOT NULL DEFAULT '',
                 reason     TEXT,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS problem_difficulty (
+                problem_id INT NOT NULL DEFAULT 0,
+                category   VARCHAR(16) NOT NULL DEFAULT 'BASIC',
+                level      INT NOT NULL DEFAULT 1,
+                position   VARCHAR(8) NOT NULL DEFAULT 'mid',
+                PRIMARY KEY (problem_id, category, level, position)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         ");
         $pdo->exec("

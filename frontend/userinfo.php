@@ -18,7 +18,7 @@ $rating = round($user['rating'] ?? 1500);
 <?php
 require_once 'inc/functions.php';
 $role_info = user_role_html($uid);
-?><div class="page-header"><h1>👤 <?= $role_info ?></h1></div>
+?><div class="page-header"><h1><i class="fa-solid fa-user"></i> <?= $role_info ?></h1></div>
 <div class="stats-grid">
     <div class="stat-card"><div class="stat-label">昵称</div><div class="stat-value" style="font-size:18px;color:var(--accent)"><?= htmlspecialchars($user['nick'] ?: $uid) ?></div></div>
     <div class="stat-card"><div class="stat-label">通过</div><div class="stat-value" style="color:var(--green)"><?= $ac ?></div></div>
@@ -26,12 +26,12 @@ $role_info = user_role_html($uid);
     <div class="stat-card"><div class="stat-label">已解决</div><div class="stat-value" style="color:var(--green);font-size:20px"><?= $user['solved_count'] ?? 0 ?></div></div>
     <div class="stat-card"><div class="stat-label">Rating</div><div class="stat-value" style="color:var(--accent-gold)"><?= $rating ?></div></div>
     <div class="stat-card"><div class="stat-label">注册时间</div><div class="stat-value" style="font-size:14px"><?= $user['reg_time'] ?? '-' ?></div></div>
-    <?php if ($is_admin): ?><div class="stat-card"><div class="stat-label">身份</div><div class="stat-value" style="color:var(--accent-gold);font-size:16px">🔑 管理员</div></div><?php endif; ?>
+    <?php if ($is_admin): ?><div class="stat-card"><div class="stat-label">身份</div><div class="stat-value" style="color:var(--accent-gold);font-size:16px"><i class="fa-solid fa-key"></i> 管理员</div></div><?php endif; ?>
 </div>
 
 <?php if (!empty($user['bio'])): ?>
 <div class="card">
-    <h2>📝 个人简介</h2>
+    <h2><i class="fa-solid fa-pen-to-square"></i> 个人简介</h2>
     <div style="font-size:14px;color:var(--text-secondary);line-height:1.7"><?php
         require_once 'inc/Parsedown.php';
         $pd = new Parsedown();
@@ -41,7 +41,7 @@ $role_info = user_role_html($uid);
 <?php endif; ?>
 
 <?php if ($subs): ?>
-<div class="section"><h2 class="section-title">📊 提交记录</h2>
+<div class="section"><h2 class="section-title"><i class="fa-solid fa-chart-simple"></i> 提交记录</h2>
 <div class="card" style="padding:0"><div class="table-wrap"><table>
 <thead><tr><th>#</th><th>题目</th><th>状态</th><th>分数</th></tr></thead>
 <tbody><?php foreach ($subs as $s): ?>

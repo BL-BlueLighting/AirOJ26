@@ -7,7 +7,7 @@ require_once 'inc/db.php';
 require_once 'inc/functions.php';
 $users = Database::fetchAll("SELECT u.user_id,u.nick,u.solved_count,u.submit_count,u.rating FROM users u ORDER BY u.solved_count DESC, u.submit_count ASC, u.rating DESC LIMIT 100");
 ?>
-<div class="page-header"><h1>🏆 排行榜</h1></div>
+<div class="page-header"><h1><i class="fa-solid fa-trophy"></i> 排行榜</h1></div>
 <div class="card" style="padding:0">
 <div class="table-wrap">
 <table>

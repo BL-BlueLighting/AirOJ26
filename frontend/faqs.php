@@ -2,7 +2,7 @@
 $title = '常见问题';
 require 'inc/header.php';
 ?>
-<div class="page-header"><h1>❓ 常见问题</h1></div>
+<div class="page-header"><h1><i class="fa-solid fa-circle-question"></i> 常见问题</h1></div>
 
 <div class="card"><h2>如何提交代码？</h2><p>在题目页面选择编程语言，编写代码后点击提交即可。评测结果将会在状态页面显示。</p></div>
 <div class="card"><h2>支持哪些编程语言？</h2><p>支持 C (GCC)、C++ (G++)、Python 3、Java、Go、JavaScript (Node.js)。后续会陆续添加更多语言。</p></div>

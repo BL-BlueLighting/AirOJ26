@@ -9,41 +9,113 @@ require_once 'inc/config.php';
 require_once 'inc/functions.php';
 require_once 'inc/Parsedown.php';
 
-$pid = $_GET['id'] ?? '1001';
+$requestedId = (int)($_GET['id'] ?? 1000);
 $cid = intval($_GET['cid'] ?? 0);
-$caseCount = count_test_cases($pid);
-$firstCase = load_first_test_input($pid);
 $langs = get_language_configs();
 $err = $_GET['err'] ?? '';
 $ok = $_GET['ok'] ?? '';
 
-// 从数据库读取题目信息
+// 从数据库读取题目信息，并解析题目组（同一道题的多个难度版本）
 require_once 'inc/db.php';
-$problem = Database::fetchOne("SELECT * FROM problem WHERE problem_id=?", [(int)$pid]);
+$row = Database::fetchOne("SELECT * FROM problem WHERE problem_id=?", [$requestedId]);
 $contest = $cid ? Database::fetchOne("SELECT * FROM contest WHERE contest_id=?", [$cid]) : null;
 if (!$contest) $cid = 0;
+
+$groupMembers = [];
+$isGroup = false;
+$mainId = $requestedId;
+if ($row) {
+    $gid = problem_group_main_id($row);
+    $mainId = $gid;
+    $groupMembers = problem_group_members($gid);
+    $isGroup = count($groupMembers) > 1;
+    $main = problem_group_main($row);
+
+    // 直接访问某个难度版本时，跳到主记录并带上 v
+    if ($isGroup && (int)$main['problem_id'] !== $requestedId) {
+        header('Location: /problem.php?id=' . $mainId . '&v=' . $requestedId . ($cid ? '&cid=' . $cid : ''));
+        exit;
+    }
+
+    if ($isGroup) {
+        $v = (int)($_GET['v'] ?? 0);
+        $problem = null;
+        foreach ($groupMembers as $m) {
+            if ((int)$m['problem_id'] === $v) { $problem = $m; break; }
+        }
+        if (!$problem) $problem = $groupMembers[0];   // 默认最低难度
+    } else {
+        $problem = $main;
+    }
+    $pid = (string)$problem['problem_id'];
+} else {
+    $problem = null;
+    $pid = (string)$requestedId;
+}
+
+$caseCount = count_test_cases($pid);
+$firstCase = load_first_test_input($pid);
+
+// 标签、难度、通过统计、越级检查（难度按当前选中的版本计算）
+$tags     = problem_tags($pid);
+$diffs    = problem_difficulties($pid);
+$acStats  = $isGroup ? problem_group_ac_stats($groupMembers) : problem_ac_stats($pid);
+$tierInfo = problem_tier_check($pid, $user);
 
 $pd = new Parsedown();
 $pd->setSafeMode(true);
 
 function md(?string $text, Parsedown $pd): string {
-    return $text ? $pd->text($text) : '<p style="color:var(--text-muted)">（暂无内容）</p>';
+    // mdui-prose 只在 mdui3 主题（加载了 mdui.css）下生效
+    return $text
+        ? '<div class="mdui-prose">' . $pd->text($text) . '</div>'
+        : '<p style="color:var(--text-muted)">（暂无内容）</p>';
 }
 ?>
+<?php if ($tierInfo['warn']): ?>
+<div class="tier-warning<?= $tierInfo['blocked'] ? ' tier-blocked' : '' ?>">
+    <i class="fa-solid fa-triangle-exclamation"></i> <?= htmlspecialchars($tierInfo['message']) ?>
+</div>
+<?php endif; ?>
 <div class="pw" id="pw">
 
     <!-- ═══ 左栏：题目 ═══ -->
     <section class="pw-left">
         <div class="pw-pane-head">
-            <span>📄 <?= $problem ? htmlspecialchars($problem['title']) : 'Problem ' . htmlspecialchars($pid) ?></span>
-            <span class="pid">#<?= htmlspecialchars($pid) ?></span>
+            <span><i class="fa-solid fa-file-lines"></i> <?= $problem ? htmlspecialchars($problem['title']) : 'Problem ' . htmlspecialchars($pid) ?></span>
+            <span class="pid">#<?= htmlspecialchars((string)$mainId) ?></span>
             <span class="pw-spacer"></span>
-            <a href="/bbs.php?pid=<?= htmlspecialchars($pid) ?>" class="btn btn-outline btn-xs">💬 讨论</a>
-            <a href="/solutions.php?id=<?= htmlspecialchars($pid) ?>" class="btn btn-outline btn-xs">📝 题解</a>
+            <a href="/bbs.php?pid=<?= htmlspecialchars($pid) ?>" class="btn btn-outline btn-xs"><i class="fa-solid fa-comments"></i> 讨论</a>
+            <a href="/solutions.php?id=<?= htmlspecialchars($pid) ?>" class="btn btn-outline btn-xs"><i class="fa-solid fa-pen-to-square"></i> 题解</a>
+        </div>
+        <?php if ($isGroup): ?>
+        <div class="pw-variants" title="同一道题的多个难度版本">
+            <?php foreach ($groupMembers as $m):
+                $mv = (int)$m['problem_id'];
+                $mdiff = problem_difficulties((string)$mv);
+                $mlabel = $mdiff ? difficulty_label($mdiff[0]['category'], (int)$mdiff[0]['level'], $mdiff[0]['position']) : ('版本 ' . $mv);
+            ?>
+            <a class="pw-variant <?= $mv === (int)$problem['problem_id'] ? 'active' : '' ?>"
+               href="/problem.php?id=<?= $mainId ?>&v=<?= $mv ?><?= $cid ? '&cid=' . $cid : '' ?>"><?= htmlspecialchars($mlabel) ?></a>
+            <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+        <div class="pw-meta">
+            <?php if ($problem && ($problem['author'] ?? '') !== ''): ?>
+            <span><i class="fa-solid fa-user"></i> 出题人：<?= user_role_html($problem['author']) ?></span>
+            <?php endif; ?>
+            <span><i class="fa-solid fa-circle-check" style="color:var(--green)"></i> 通过 <?= (int)$acStats['ac'] ?></span>
+            <span><i class="fa-solid fa-circle-xmark" style="color:var(--red)"></i> 未通过 <?= (int)$acStats['failed'] ?></span>
+            <?php foreach ($diffs as $d): ?>
+            <span class="pw-diff"><i class="fa-solid fa-gauge-high"></i> <?= htmlspecialchars(difficulty_label($d['category'], (int)$d['level'], $d['position'])) ?></span>
+            <?php endforeach; ?>
+            <?php foreach ($tags as $tag): ?>
+            <a class="tag tag-blue" href="/problems.php?q=<?= urlencode($tag) ?>">#<?= htmlspecialchars($tag) ?></a>
+            <?php endforeach; ?>
         </div>
         <?php if ($contest): ?>
         <div style="padding:6px 16px;background:var(--bg-hover);border-bottom:1px solid var(--border);font-size:12px;color:var(--text-secondary)">
-            🏁 比赛：<a href="/contest_detail.php?cid=<?= $cid ?>"><?= htmlspecialchars($contest['title']) ?></a>
+            <i class="fa-solid fa-flag-checkered"></i> 比赛：<a href="/contest_detail.php?cid=<?= $cid ?>"><?= htmlspecialchars($contest['title']) ?></a>
             · <?= contest_status($contest) ?>
         </div>
         <?php endif; ?>
@@ -53,20 +125,20 @@ function md(?string $text, Parsedown $pd): string {
 
             <?php if ($problem): ?>
                 <div class="problem-section">
-                    <h3>📝 题目描述</h3>
+                    <h3><i class="fa-solid fa-pen-to-square"></i> 题目描述</h3>
                     <?= md($problem['description'] ?? '', $pd) ?>
                 </div>
                 <div class="problem-section">
-                    <h3>📥 输入格式</h3>
+                    <h3><i class="fa-solid fa-right-to-bracket"></i> 输入格式</h3>
                     <?= md($problem['input'] ?? '', $pd) ?>
                 </div>
                 <div class="problem-section">
-                    <h3>📤 输出格式</h3>
+                    <h3><i class="fa-solid fa-right-from-bracket"></i> 输出格式</h3>
                     <?= md($problem['output'] ?? '', $pd) ?>
                 </div>
                 <?php if (!empty($problem['sample_input']) || !empty($problem['sample_output'])): ?>
                 <div class="problem-section">
-                    <h3>📋 样例</h3>
+                    <h3><i class="fa-solid fa-clipboard-list"></i> 样例</h3>
                     <?php if (!empty($problem['sample_input'])): ?>
                     <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">输入</div>
                     <div class="sample-box"><?= htmlspecialchars($problem['sample_input']) ?></div>
@@ -79,12 +151,9 @@ function md(?string $text, Parsedown $pd): string {
                 <?php endif; ?>
                 <?php if (!empty($problem['hint'])): ?>
                 <div class="problem-section">
-                    <h3>💡 提示</h3>
+                    <h3><i class="fa-solid fa-lightbulb"></i> 提示</h3>
                     <?= md($problem['hint'], $pd) ?>
                 </div>
-                <?php endif; ?>
-                <?php if (!empty($problem['source'])): ?>
-                <div style="font-size:12px;color:var(--text-muted);margin-top:12px">来源: <?= htmlspecialchars($problem['source']) ?></div>
                 <?php endif; ?>
             <?php else: ?>
                 <div class="problem-section">
@@ -119,10 +188,10 @@ function md(?string $text, Parsedown $pd): string {
                     <option value="<?= $k ?>"><?= $v['name'] ?></option>
                     <?php endforeach; ?>
                 </select>
-                <button type="button" class="btn btn-outline" id="btn-upload">📄 上传代码</button>
+                <button type="button" class="btn btn-outline" id="btn-upload"><i class="fa-solid fa-file-lines"></i> 上传代码</button>
                 <span class="pw-spacer"></span>
-                <button type="button" class="btn btn-outline" id="btn-layout" title="切换双栏 / 全屏">⛶ 全屏</button>
-                <button type="submit" class="btn btn-primary">⚡ 提交</button>
+                <button type="button" class="btn btn-outline" id="btn-layout" title="切换双栏 / 全屏"><i class="fa-solid fa-expand"></i> 全屏</button>
+                <button type="submit" class="btn btn-primary" <?= $tierInfo['blocked'] ? 'disabled title="不允许越级作答"' : '' ?>><i class="fa-solid fa-bolt"></i> 提交</button>
             </div>
 
             <div class="pw-editor" id="editor-wrap"></div>
@@ -132,7 +201,7 @@ function md(?string $text, Parsedown $pd): string {
 
         <div class="pw-test" id="pw-test">
             <div class="pw-test-head">
-                <span>🧪 测试</span>
+                <span><i class="fa-solid fa-flask"></i> 测试</span>
                 <?php if ($firstCase): ?>
                 <span style="font-weight:400;color:var(--text-muted)">已载入第 <?= htmlspecialchars($firstCase['name']) ?> 组测试数据</span>
                 <?php else: ?>
@@ -142,7 +211,7 @@ function md(?string $text, Parsedown $pd): string {
                 <span class="pw-run-status" id="run-status"></span>
                 <button type="button" class="btn btn-outline" id="btn-clear">清空输入</button>
                 <button type="button" class="btn btn-outline" id="btn-toggle-test">收起</button>
-                <button type="button" class="btn btn-primary" id="btn-run">▶ 运行</button>
+                <button type="button" class="btn btn-primary" id="btn-run"><i class="fa-solid fa-play"></i> 运行</button>
             </div>
             <div class="pw-test-body">
                 <div class="pw-test-pane">
@@ -208,7 +277,7 @@ function md(?string $text, Parsedown $pd): string {
     function setLayout(focus) {
         document.body.classList.toggle('pw-focus', focus);
         document.cookie = 'pw_layout=' + (focus ? 'focus' : 'dual') + ';path=/;max-age=31536000';
-        layoutBtn.textContent = focus ? '▣ 双栏' : '⛶ 全屏';
+        layoutBtn.innerHTML = focus ? '<i class="fa-solid fa-table-columns"></i> 双栏' : '<i class="fa-solid fa-expand"></i> 全屏';
         if (editor) setTimeout(function () { editor.layout(); }, 60);
     }
     layoutBtn.addEventListener('click', function () {
@@ -252,11 +321,11 @@ function md(?string $text, Parsedown $pd): string {
 
     // ---- 测试区收起 / 展开 ----
     testPane.classList.toggle('collapsed', localStorage.getItem('pw_test_collapsed') === '1');
-    $('btn-toggle-test').textContent = testPane.classList.contains('collapsed') ? '展开' : '收起';
+    $('btn-toggle-test').innerHTML = testPane.classList.contains('collapsed') ? '<i class="fa-solid fa-chevron-down"></i> 展开' : '<i class="fa-solid fa-chevron-up"></i> 收起';
     $('btn-toggle-test').addEventListener('click', function () {
         var c = testPane.classList.toggle('collapsed');
         localStorage.setItem('pw_test_collapsed', c ? '1' : '0');
-        this.textContent = c ? '展开' : '收起';
+        this.innerHTML = c ? '<i class="fa-solid fa-chevron-down"></i> 展开' : '<i class="fa-solid fa-chevron-up"></i> 收起';
     });
     $('btn-clear').addEventListener('click', function () {
         inputTa.value = '';
@@ -266,7 +335,7 @@ function md(?string $text, Parsedown $pd): string {
 
     // ---- 运行测试 ----
     function setStatus(text, cls) {
-        runStatus.textContent = text;
+        runStatus.innerHTML = text;
         runStatus.className = 'pw-run-status' + (cls ? ' ' + cls : '');
     }
     function runTest() {
@@ -275,7 +344,7 @@ function md(?string $text, Parsedown $pd): string {
         if (!code.trim()) { setStatus('请先编写代码', 'err'); return; }
         if (!langSel.value) { setStatus('请先选择语言', 'err'); return; }
 
-        running = true; runBtn.disabled = true; runBtn.textContent = '⏳ 运行中';
+        running = true; runBtn.disabled = true; runBtn.innerHTML = '<i class="fa-solid fa-hourglass-half"></i> 运行中';
         setStatus('正在运行...', '');
         outPre.textContent = '';
 
@@ -285,19 +354,19 @@ function md(?string $text, Parsedown $pd): string {
             body: JSON.stringify({ pid: PID, lang: langSel.value, code: code, input: inputTa.value })
         }).then(function (r) { return r.json(); }).then(function (res) {
             if (!res.ok) {
-                setStatus(res.compile_error ? '❌ 编译错误' : '⚠ 运行失败', 'err');
+                setStatus(res.compile_error ? '<i class="fa-solid fa-circle-xmark"></i> 编译错误' : '<i class="fa-solid fa-triangle-exclamation"></i> 运行失败', 'err');
                 outPre.textContent = res.error || '未知错误';
                 return;
             }
             var time = res.real_time + ' ms · ' + (res.memory / 1048576).toFixed(1) + ' MB';
-            if (res.verdict === 'OK') setStatus('✔ 运行完成 · ' + time, 'ok');
-            else setStatus('⚠ ' + res.verdict + ' · ' + time, 'err');
+            if (res.verdict === 'OK') setStatus('<i class="fa-solid fa-circle-check"></i> 运行完成 · ' + time, 'ok');
+            else setStatus('<i class="fa-solid fa-triangle-exclamation"></i> ' + res.verdict + ' · ' + time, 'err');
             outPre.textContent = res.output || '（无输出）';
         }).catch(function (e) {
-            setStatus('⚠ 请求失败', 'err');
+            setStatus('<i class="fa-solid fa-triangle-exclamation"></i> 请求失败', 'err');
             outPre.textContent = String(e);
         }).finally(function () {
-            running = false; runBtn.disabled = false; runBtn.textContent = '▶ 运行';
+            running = false; runBtn.disabled = false; runBtn.innerHTML = '<i class="fa-solid fa-play"></i> 运行';
         });
     }
     runBtn.addEventListener('click', runTest);

@@ -2,7 +2,7 @@
 /**
  * AirOJ — 页脚
  *
- * 自定义页脚内容由管理员在「后台 → 系统设置 → 页脚设置」中配置（system_config.site_footer），
+ * 自定义页脚内容由管理员在「后台 - 系统设置 - 页脚设置」中配置（system_config.site_footer），
  * 支持 Markdown，显示在下方版权行之上。
  */
 $__custom_footer = '';
@@ -24,7 +24,7 @@ if ($__custom_footer !== '') {
     <div class="footer-custom"><?= $__footer_pd->text($__custom_footer) ?></div>
     <?php endif; ?>
 
-    <!-- ↓↓↓ 版权行：强制保留，不随自定义页脚变化 ↓↓↓ -->
+    <!-- 版权行：强制保留，不随自定义页脚变化 -->
     <?php
     /*
     请务必保留该强制 footer，修改 footer 不仅不尊重版权，更不尊重作者。
@@ -34,7 +34,7 @@ if ($__custom_footer !== '') {
         &copy; Copyright <?= date('Y') ?> <strong>BL.BlueLighting</strong> &amp; <strong>AirOJ DX Team</strong>.
         Judging Module by <strong>QingdaoU Organization</strong>.
     </div>
-    <!-- ↑↑↑ 版权行：强制保留 ↑↑↑ -->
+    <!-- 版权行：强制保留 -->
 </footer>
 
 </body>

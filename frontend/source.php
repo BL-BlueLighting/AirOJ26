@@ -8,7 +8,7 @@ $id = intval($_GET['id'] ?? 0);
 $row = Database::fetchOne("SELECT * FROM submissions WHERE id=?", [$id]);
 if (!$row) { echo '<div class="empty"><p>提交记录不存在</p></div>'; require 'inc/footer.php'; exit; }
 ?>
-<div class="page-header"><h1>📄 查看源代码 #<?= $id ?></h1></div>
+<div class="page-header"><h1><i class="fa-solid fa-file-lines"></i> 查看源代码 #<?= $id ?></h1></div>
 <div class="card">
     <div style="margin-bottom:12px;color:var(--text-secondary);font-size:13px">
         题目: <a href="problem.php?id=<?= $row['problem_id'] ?>"><?= $row['problem_id'] ?></a>

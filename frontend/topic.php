@@ -62,8 +62,8 @@ $replies = Database::fetchAll("SELECT * FROM bbs_reply WHERE topic_id=? ORDER BY
 $problem = $topic['problem_id'] ? Database::fetchOne("SELECT title FROM problem WHERE problem_id=?", [(int)$topic['problem_id']]) : null;
 ?>
 <div class="page-header">
-    <h1>💬 <?= htmlspecialchars($topic['title']) ?></h1>
-    <a href="bbs.php<?= $topic['problem_id'] ? '?pid=' . (int)$topic['problem_id'] : '' ?>" class="btn btn-outline btn-sm">← 返回讨论区</a>
+    <h1><i class="fa-solid fa-comments"></i> <?= htmlspecialchars($topic['title']) ?></h1>
+    <a href="bbs.php<?= $topic['problem_id'] ? '?pid=' . (int)$topic['problem_id'] : '' ?>" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> 返回讨论区</a>
 </div>
 
 <?php if ($err): ?><div class="alert alert-error"><?= htmlspecialchars($err) ?></div><?php endif; ?>
@@ -82,7 +82,7 @@ $problem = $topic['problem_id'] ? Database::fetchOne("SELECT title FROM problem 
         </form>
         <?php endif; ?>
     </div>
-    <div style="font-size:14px;color:var(--text-secondary);line-height:1.8;overflow-x:auto"><?= $pd->text((string)$topic['content']) ?></div>
+    <div class="mdui-prose" style="font-size:14px;line-height:1.8;overflow-x:auto"><?= $pd->text((string)$topic['content']) ?></div>
 </div>
 
 <div class="section">
@@ -101,7 +101,7 @@ $problem = $topic['problem_id'] ? Database::fetchOne("SELECT title FROM problem 
             </form>
             <?php endif; ?>
         </div>
-        <div style="font-size:14px;color:var(--text-secondary);line-height:1.8;overflow-x:auto"><?= $pd->text((string)$r['content']) ?></div>
+        <div class="mdui-prose" style="font-size:14px;line-height:1.8;overflow-x:auto"><?= $pd->text((string)$r['content']) ?></div>
     </div>
     <?php endforeach; ?>
     <?php else: ?>
@@ -111,10 +111,10 @@ $problem = $topic['problem_id'] ? Database::fetchOne("SELECT title FROM problem 
 
 <?php if ($user): ?>
 <div class="card">
-    <h2>✏️ 发表回复</h2>
+    <h2><i class="fa-solid fa-pen-to-square"></i> 发表回复</h2>
     <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">支持 Markdown 格式</p>
     <form method="post">
-        <div class="form-group"><textarea name="reply_content" class="form-input" style="min-height:140px" required placeholder="写下你的回复..."></textarea></div>
+        <div class="form-group"><textarea name="reply_content" class="form-input md-editor" style="min-height:140px" required placeholder="写下你的回复..."></textarea></div>
         <button type="submit" class="btn btn-primary">回复</button>
     </form>
 </div>
@@ -124,4 +124,5 @@ $problem = $topic['problem_id'] ? Database::fetchOne("SELECT title FROM problem 
 </div>
 <?php endif; ?>
 
+<script src="/js/md-toolbar.js?v=1"></script>
 <?php require 'inc/footer.php'; ?>

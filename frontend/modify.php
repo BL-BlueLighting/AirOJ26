@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 require 'inc/header.php';
 $user = $_SESSION['airoj_user'];
 ?>
-<div class="page-header"><h1>⚙️ 修改资料</h1></div>
+<div class="page-header"><h1><i class="fa-solid fa-gear"></i> 修改资料</h1></div>
 <div class="auth-card" style="max-width:500px">
     <?php if ($err): ?><div class="alert alert-error"><?= htmlspecialchars($err) ?></div><?php endif; ?>
     <?php if ($ok): ?><div class="alert alert-success"><?= htmlspecialchars($ok) ?></div><?php endif; ?>

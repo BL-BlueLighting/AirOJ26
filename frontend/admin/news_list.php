@@ -18,7 +18,7 @@ if (isset($_GET['unpin'])) {
 
 $news = Database::fetchAll("SELECT * FROM news ORDER BY pinned DESC, news_id DESC");
 require __DIR__ . '/../inc/header.php'; ?>
-<div class="page-header"><h1>📢 公告管理</h1><a href="news_add.php" class="btn btn-primary btn-sm">➕ 添加公告</a></div>
+<div class="page-header"><h1><i class="fa-solid fa-bullhorn"></i> 公告管理</h1><a href="news_add.php" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> 添加公告</a></div>
 <div class="card" style="padding:0"><div class="table-wrap"><table>
 <thead><tr><th style="width:60px">ID</th><th>标题</th><th style="width:170px">时间</th><th style="width:90px">置顶</th><th style="width:160px">操作</th></tr></thead>
 <tbody><?php foreach ($news as $n): ?>
@@ -26,7 +26,7 @@ require __DIR__ . '/../inc/header.php'; ?>
 <td><?=$n['news_id']?></td>
 <td><a href="../news.php?id=<?=$n['news_id']?>" target="_blank"><?=htmlspecialchars($n['title'])?></a></td>
 <td><?=$n['time']?></td>
-<td><?= !empty($n['pinned']) ? '<span class="tag tag-gold">📌 已置顶</span>' : '<span style="color:var(--text-muted)">—</span>' ?></td>
+<td><?= !empty($n['pinned']) ? '<span class="tag tag-gold"><i class="fa-solid fa-thumbtack"></i> 已置顶</span>' : '<span style="color:var(--text-muted)">—</span>' ?></td>
 <td>
     <?php if (!empty($n['pinned'])): ?>
     <a href="?unpin=<?=$n['news_id']?>" class="btn btn-outline btn-xs">取消置顶</a>

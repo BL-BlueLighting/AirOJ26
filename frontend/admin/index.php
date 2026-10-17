@@ -10,12 +10,12 @@ $panel = $_GET['panel'] ?? 'dashboard';
 $user = $_SESSION['airoj_user'];
 require __DIR__ . '/../inc/header.php';
 $panels = [
-    'dashboard' => '📊 控制台', 'problem_list' => '📋 题目列表', 'problem_add' => '➕ 添加题目',
-    'problem_import' => '📥 导入题目', 'user_list' => '👤 用户列表', 'user_edit' => '✏️ 修改用户',
-    'user_batch' => '👥 批量添加', 'privilege_list' => '🔑 权限列表', 'privilege_add' => '➕ 添加权限',
-    'privilege_log' => '📜 权限日志', 'news_list' => '📢 公告列表', 'news_add' => '➕ 添加公告',
-    'news_scroll' => '📰 滚动公告', 'system_info' => 'ℹ️ 系统信息', 'judge_queue' => '⚡ 评测队列',
-    'version_info' => '📌 版本信息',
+    'dashboard' => '<i class="fa-solid fa-chart-simple"></i> 控制台', 'problem_list' => '<i class="fa-solid fa-clipboard-list"></i> 题目列表', 'problem_add' => '<i class="fa-solid fa-plus"></i> 添加题目',
+    'problem_import' => '<i class="fa-solid fa-right-to-bracket"></i> 导入题目', 'user_list' => '<i class="fa-solid fa-user"></i> 用户列表', 'user_edit' => '<i class="fa-solid fa-pen-to-square"></i> 修改用户',
+    'user_batch' => '<i class="fa-solid fa-users"></i> 批量添加', 'privilege_list' => '<i class="fa-solid fa-key"></i> 权限列表', 'privilege_add' => '<i class="fa-solid fa-plus"></i> 添加权限',
+    'privilege_log' => '<i class="fa-solid fa-scroll"></i> 权限日志', 'news_list' => '<i class="fa-solid fa-bullhorn"></i> 公告列表', 'news_add' => '<i class="fa-solid fa-plus"></i> 添加公告',
+    'news_scroll' => '<i class="fa-solid fa-newspaper"></i> 滚动公告', 'system_info' => '<i class="fa-solid fa-circle-info"></i> 系统信息', 'judge_queue' => '<i class="fa-solid fa-bolt"></i> 评测队列',
+    'version_info' => '<i class="fa-solid fa-thumbtack"></i> 版本信息',
 ];
 ?>
 <style>
@@ -30,35 +30,38 @@ $panels = [
 </style>
 <div class="admin-wrap">
 <div class="admin-sidebar">
-    <div class="section-title">📋 题目</div>
+    <div class="section-title"><i class="fa-solid fa-clipboard-list"></i> 题目</div>
     <a href="?panel=problem_list" class="<?=$panel==='problem_list'?'active':''?>">题目列表</a>
-    <a href="?panel=problem_add" class="<?=$panel==='problem_add'?'active':''?>">添加题目</a>
+    <a href="/admin/problem_add.php" class="<?=basename($_SERVER['SCRIPT_NAME']??'')==='problem_add.php'?'active':''?>">添加题目</a>
     <a href="?panel=problem_import" class="<?=$panel==='problem_import'?'active':''?>">导入题目</a>
 
-    <div class="section-title">👤 用户</div>
+    <div class="section-title"><i class="fa-solid fa-user"></i> 用户</div>
     <a href="?panel=user_list" class="<?=$panel==='user_list'?'active':''?>">用户列表</a>
     <a href="?panel=user_edit" class="<?=$panel==='user_edit'?'active':''?>">修改用户</a>
     <a href="?panel=user_batch" class="<?=$panel==='user_batch'?'active':''?>">批量添加</a>
 
-    <div class="section-title">🔑 权限</div>
+    <div class="section-title"><i class="fa-solid fa-key"></i> 权限</div>
     <a href="?panel=privilege_list" class="<?=$panel==='privilege_list'?'active':''?>">权限列表</a>
     <a href="?panel=privilege_add" class="<?=$panel==='privilege_add'?'active':''?>">添加权限</a>
     <a href="?panel=privilege_log" class="<?=$panel==='privilege_log'?'active':''?>">权限日志</a>
 
-    <div class="section-title">🏁 比赛</div>
+    <div class="section-title"><i class="fa-solid fa-flag-checkered"></i> 比赛</div>
     <a href="/admin/contest_list.php" class="<?=basename($_SERVER['SCRIPT_NAME']??'')==='contest_list.php'?'active':''?>">比赛列表</a>
     <a href="/admin/contest_edit.php?id=0" class="<?=basename($_SERVER['SCRIPT_NAME']??'')==='contest_edit.php'?'active':''?>">添加比赛</a>
 
-    <div class="section-title">📢 公告</div>
+    <div class="section-title"><i class="fa-solid fa-users"></i> 团队</div>
+    <a href="/admin/team_list.php" class="<?=basename($_SERVER['SCRIPT_NAME']??'')==='team_list.php'?'active':''?>">团队管理</a>
+
+    <div class="section-title"><i class="fa-solid fa-bullhorn"></i> 公告</div>
     <a href="?panel=news_list" class="<?=$panel==='news_list'?'active':''?>">公告列表</a>
     <a href="?panel=news_add" class="<?=$panel==='news_add'?'active':''?>">添加公告</a>
     <a href="?panel=news_scroll" class="<?=$panel==='news_scroll'?'active':''?>">滚动公告</a>
 
-    <div class="section-title">⚡ 系统</div>
+    <div class="section-title"><i class="fa-solid fa-bolt"></i> 系统</div>
     <a href="?panel=system_info" class="<?=$panel==='system_info'?'active':''?>">系统信息</a>
     <a href="?panel=judge_queue" class="<?=$panel==='judge_queue'?'active':''?>">评测队列</a>
     <a href="?panel=version_info" class="<?=$panel==='version_info'?'active':''?>">版本信息</a>
-    <div class="section-title">🎨 外观</div>
+    <div class="section-title"><i class="fa-solid fa-palette"></i> 外观</div>
     <a href="/admin/settings.php" class="<?=basename($_SERVER['SCRIPT_NAME']??'')==='settings.php'?'active':''?>">Logo / Favicon</a>
 </div>
 <div class="admin-content">
@@ -89,7 +92,7 @@ if ($panel === 'dashboard') {
 // ===== Panel: Problem List =====
 } elseif ($panel === 'problem_list') {
     $problems = Database::fetchAll("SELECT * FROM problem ORDER BY problem_id DESC"); ?>
-    <div class="page-header"><h1>题目列表</h1><a href="?panel=problem_add" class="btn btn-primary btn-sm">➕ 添加</a></div>
+    <div class="page-header"><h1>题目列表</h1><a href="problem_add.php" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> 添加</a></div>
     <div class="card" style="padding:0"><div class="table-wrap"><table>
     <thead><tr><th>ID</th><th>标题</th><th>数据</th><th>状态</th><th>操作</th></tr></thead>
     <tbody>
@@ -98,7 +101,10 @@ if ($panel === 'dashboard') {
         $pid = $p['problem_id'];
         $dir = INPUTS_DIR . '/' . $pid;
         $has_data = is_dir($dir) && count(array_filter(scandir($dir)?:[], fn($f)=>str_ends_with($f,'.in'))) > 0;
-    ?><tr><td><?=$pid?></td><td><a href="/problem.php?id=<?=$pid?>"><?=htmlspecialchars($p['title'])?></a></td>
+    ?><tr><td><?=$pid?></td><td><a href="/problem.php?id=<?=$pid?>"><?=htmlspecialchars($p['title'])?></a>
+    <?php if ((int)($p['group_id'] ?? 0) > 0): ?>
+    <span class="tag tag-<?= (int)$p['group_id'] === (int)$pid ? 'blue' : 'gold' ?>"><?= (int)$p['group_id'] === (int)$pid ? '主记录' : '难度版本' ?></span>
+    <?php endif; ?></td>
     <td><?=$has_data?'<span class="tag tag-green">有</span>':'<span class="tag tag-red">无</span>'?></td>
     <td><?=$p['defunct']==='Y'?'<span class="tag tag-red">隐藏</span>':'<span class="tag tag-blue">正常</span>'?></td>
     <td><a href="problem_edit.php?id=<?=$pid?>" class="btn btn-primary btn-xs">编辑</a></td></tr>
@@ -202,13 +208,13 @@ if ($panel === 'dashboard') {
     require_once __DIR__ . '/../inc/Parsedown.php';
     $pd = new Parsedown();
     ?>
-    <div class="page-header"><h1>📥 导入题目</h1></div>
+    <div class="page-header"><h1><i class="fa-solid fa-right-to-bracket"></i> 导入题目</h1></div>
 
     <?php if ($err): ?><div class="alert alert-error"><?= nl2br(htmlspecialchars($err)) ?></div><?php endif; ?>
     <?php if ($ok): ?><div class="alert alert-success"><?= htmlspecialchars($ok) ?></div><?php endif; ?>
 
     <div class="card">
-        <h2>📦 HydroOJ</h2>
+        <h2><i class="fa-solid fa-box"></i> HydroOJ</h2>
         <p style="color:var(--text-secondary);font-size:13px;margin-bottom:12px">
             HydroOJ 题目格式：ZIP 中包含多个目录，每个目录为一个题目。<br>
             目录内包含 <code>problem.md</code>（题目描述，Markdown 格式）和 <code>testdata/</code>（测试数据）。
@@ -225,7 +231,7 @@ if ($panel === 'dashboard') {
     </div>
 
     <div class="card">
-        <h2>⚙️ HUSTOJ</h2>
+        <h2><i class="fa-solid fa-gear"></i> HUSTOJ</h2>
         <p style="color:var(--text-secondary);font-size:13px;margin-bottom:12px">
             HUSTOJ 题目格式：ZIP 中包含多个目录，每个目录为一个题目。<br>
             目录内包含 <code>problem.txt</code>（标题与描述，UTF-8）和 <code>*.in</code> / <code>*.out</code> 测试数据。
@@ -242,7 +248,7 @@ if ($panel === 'dashboard') {
     </div>
 
     <div class="card">
-        <h2>📄 从 Markdown 文件导入</h2>
+        <h2><i class="fa-solid fa-file-lines"></i> 从 Markdown 文件导入</h2>
         <p style="color:var(--text-secondary);font-size:13px;margin-bottom:12px">
             上传 Markdown 文件（.md），将尝试解析为题目描述并创建题目。
         </p>
@@ -257,7 +263,7 @@ if ($panel === 'dashboard') {
     </div>
 
     <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px">
-        <h2>📖 导入说明</h2>
+        <h2><i class="fa-solid fa-book"></i> 导入说明</h2>
         <p style="color:var(--text-secondary);font-size:13px;line-height:1.8">
         <strong>HydroOJ 格式要求：</strong><br>
         ZIP 内每个子目录为一个题目。目录结构：<br>
@@ -421,6 +427,10 @@ function import_hustoj(string $dir, string $name): void {
         $role = $_POST['role'] ?? '';
         $reason = $_POST['reason'] ?? '';
         if ($nick) Database::exec("UPDATE users SET nick=? WHERE user_id=?", [$nick, $target]);
+        if (isset($_POST['name_color'])) {
+            $nc = (string)$_POST['name_color'];
+            if (valid_name_color($nc)) Database::exec("UPDATE users SET name_color=? WHERE user_id=?", [$nc, $target]);
+        }
         if ($email) Database::exec("UPDATE users SET email=? WHERE user_id=?", [$email, $target]);
         if ($pw) Database::exec("UPDATE users SET password=? WHERE user_id=?", [password_hash($pw, PASSWORD_DEFAULT), $target]);
         if ($role === 'admin') {
@@ -438,7 +448,9 @@ function import_hustoj(string $dir, string $name): void {
         }
         $ok = "用户 {$target} 已更新";
     }
-    $target_user = $target ? Database::fetchOne("SELECT * FROM users WHERE user_id=?", [$target]) : null; ?>
+    $target_user = $target ? Database::fetchOne("SELECT * FROM users WHERE user_id=?", [$target]) : null;
+    $target_is_manager = $target_user ? (bool)Database::fetchOne("SELECT 1 AS x FROM privilege WHERE user_id=? AND right_str IN ('administrator','moderator')", [$target]) : false;
+    $target_color = (string)($target_user['name_color'] ?? ''); ?>
     <div class="page-header"><h1>修改用户</h1></div>
     <?php if ($err): ?><div class="alert alert-error"><?=htmlspecialchars($err)?></div><?php endif; ?>
     <?php if ($ok): ?><div class="alert alert-success"><?=htmlspecialchars($ok)?></div><?php endif; ?>
@@ -449,6 +461,19 @@ function import_hustoj(string $dir, string $name): void {
         <div class="form-group"><label>邮箱</label><input type="email" name="email" class="form-input" value="<?=htmlspecialchars($target_user['email']??'')?>"></div>
         <div class="form-group"><label>新密码（留空不修改）</label><input type="password" name="password" class="form-input"></div>
         <div class="form-row">
+            <div class="form-group"><label>名字颜色</label>
+                <select name="name_color" class="form-input">
+                    <option value="" <?= $target_color === '' ? 'selected' : '' ?>>跟随 Rating 分级</option>
+                    <?php if ($target_is_manager): ?>
+                    <option value="role" <?= $target_color === 'role' ? 'selected' : '' ?>>管理颜色</option>
+                    <option value="split" <?= $target_color === 'split' ? 'selected' : '' ?>>平分（左 Rating / 右管理）</option>
+                    <?php endif; ?>
+                    <option value="special" <?= $target_color === 'special' ? 'selected' : '' ?>>特殊四色渐变</option>
+                    <?php foreach (AIR_OJ_NAME_COLORS as $k => $v): ?>
+                    <option value="<?= $k ?>" <?= $target_color === $k ? 'selected' : '' ?>><?= htmlspecialchars($v['label']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
             <div class="form-group"><label>设置角色</label><select name="role" class="form-input"><option value="">— 不变 —</option><option value="admin">管理员</option><option value="mod">版主</option><option value="cheat">标记作弊</option><option value="remove_cheat">取消作弊</option></select></div>
             <div class="form-group"><label>原因（记录到日志）</label><input type="text" name="reason" class="form-input" placeholder="可选"></div>
         </div>
@@ -488,7 +513,7 @@ function import_hustoj(string $dir, string $name): void {
 // ===== Panel: Privilege List =====
 } elseif ($panel === 'privilege_list') {
     $privs = Database::fetchAll("SELECT p.*,u.nick FROM privilege p LEFT JOIN users u ON p.user_id=u.user_id ORDER BY p.right_str,p.user_id"); ?>
-    <div class="page-header"><h1>权限列表</h1><a href="?panel=privilege_add" class="btn btn-primary btn-sm">➕ 添加</a></div>
+    <div class="page-header"><h1>权限列表</h1><a href="?panel=privilege_add" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> 添加</a></div>
     <div class="card" style="padding:0"><div class="table-wrap"><table>
     <thead><tr><th>用户</th><th>权限</th><th>操作</th></tr></thead>
     <tbody><?php foreach ($privs as $p): ?>
@@ -514,7 +539,7 @@ function import_hustoj(string $dir, string $name): void {
             else {
                 Database::insert("INSERT OR IGNORE INTO privilege (user_id,right_str) VALUES (?,?)", [$uid, $right]);
                 Database::insert("INSERT INTO privilege_log (user_id,admin_id,action,target,reason) VALUES (?,?,?,?,?)", [$uid, $user['user_id'], 'grant', $right, $reason ?: '管理员操作']);
-                $ok = "权限已授予 {$uid} → {$right}";
+                $ok = "权限已授予 {$uid} -> {$right}";
             }
         }
     } ?>
@@ -554,14 +579,14 @@ function import_hustoj(string $dir, string $name): void {
     }
     if (isset($_GET['del'])) { Database::exec("DELETE FROM news WHERE news_id=?", [intval($_GET['del'])]); }
     $news = Database::fetchAll("SELECT * FROM news ORDER BY pinned DESC, news_id DESC"); ?>
-    <div class="page-header"><h1>公告列表</h1><a href="?panel=news_add" class="btn btn-primary btn-sm">➕ 添加</a></div>
+    <div class="page-header"><h1>公告列表</h1><a href="?panel=news_add" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> 添加</a></div>
     <div class="card" style="padding:0"><div class="table-wrap"><table>
     <thead><tr><th>ID</th><th>标题</th><th>置顶</th><th>时间</th><th>操作</th></tr></thead>
     <tbody><?php foreach ($news as $n): ?>
     <tr>
         <td><?=$n['news_id']?></td>
         <td><?=htmlspecialchars($n['title'])?></td>
-        <td><a href="?panel=news_list&pin=<?=$n['news_id']?>" class="btn btn-xs <?=$n['pinned']?'btn-success':'btn-gray'?>"><?=$n['pinned']?'📌 已置顶':'置顶'?></a></td>
+        <td><a href="?panel=news_list&pin=<?=$n['news_id']?>" class="btn btn-xs <?=$n['pinned']?'btn-success':'btn-gray'?>"><?=$n['pinned']?'<i class="fa-solid fa-thumbtack"></i> 已置顶':'置顶'?></a></td>
         <td style="font-size:12px;color:var(--text-muted)"><?=$n['time']?></td>
         <td><a href="?panel=news_list&del=<?=$n['news_id']?>" class="btn btn-danger btn-xs" onclick="return confirm('确定删除？')">删除</a></td>
     </tr>
@@ -581,7 +606,7 @@ function import_hustoj(string $dir, string $name): void {
         <div class="form-group">
             <label>内容 <span style="font-weight:400;color:var(--text-muted)">(支持 Markdown)</span></label>
             <div style="margin-bottom:6px;display:flex;gap:6px">
-                <button type="button" class="btn btn-xs btn-outline" onclick="togglePreview('content-editor','preview-box')">👁️ 预览</button>
+                <button type="button" class="btn btn-xs btn-outline" onclick="togglePreview('content-editor','preview-box')"><i class="fa-solid fa-eye"></i> 预览</button>
             </div>
             <textarea id="content-editor" name="content" class="form-input" style="min-height:200px" required></textarea>
             <div id="preview-box" style="display:none;min-height:200px;padding:12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius);font-size:14px;color:var(--text-secondary);line-height:1.7;overflow-x:auto"></div>

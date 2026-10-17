@@ -17,12 +17,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$user) $err = '用户不存在';
         else {
             Database::insert("INSERT OR IGNORE INTO privilege (user_id, right_str) VALUES (?, ?)", [$uid, $right]);
-            $ok = "权限已授予 $uid → $right";
+            $ok = "权限已授予 $uid -> $right";
         }
     }
 }
 require __DIR__ . '/../inc/header.php'; ?>
-<div class="page-header"><h1>🔑 添加权限</h1><a href="privilege_list.php" class="btn btn-outline btn-sm">← 返回</a></div>
+<div class="page-header"><h1><i class="fa-solid fa-key"></i> 添加权限</h1><a href="privilege_list.php" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> 返回</a></div>
 <div class="card" style="max-width:500px">
     <?php if ($err): ?><div class="alert alert-error"><?=htmlspecialchars($err)?></div><?php endif; ?>
     <?php if ($ok): ?><div class="alert alert-success"><?=htmlspecialchars($ok)?></div><?php endif; ?>
