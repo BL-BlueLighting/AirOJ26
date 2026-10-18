@@ -27,7 +27,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $teams = Database::fetchAll("SELECT t.*, (SELECT COUNT(*) FROM team_members WHERE team_id=t.team_id) AS member_count
                              FROM teams t ORDER BY (verify_status='pending') DESC, t.team_id DESC");
-require __DIR__ . '/../inc/header.php'; ?>
+$admin_current_group = 'team';
+$admin_current_item  = 'team_list';
+require __DIR__ . '/_layout_top.php'; ?>
 <div class="page-header"><h1><i class="fa-solid fa-users"></i> 团队管理</h1></div>
 <?php if ($ok): ?><div class="alert alert-success"><?=htmlspecialchars($ok)?></div><?php endif; ?>
 
@@ -68,4 +70,4 @@ require __DIR__ . '/../inc/header.php'; ?>
 </tr>
 <?php endforeach; endif; ?>
 </tbody></table></div></div>
-<?php require __DIR__ . '/../inc/footer.php'; ?>
+<?php require __DIR__ . '/_layout_bottom.php'; ?>

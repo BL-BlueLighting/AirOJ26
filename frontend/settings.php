@@ -103,6 +103,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             settings_redirect('profile', '个人资料已更新');
         }
     }
+    // 修改密码：先验证原密码；若开启 2FA，再验证动态验证码
+    if (isset($_POST['change_password'])) {
+        $old  = (string)($_POST['password_old'] ?? '');
+        $new  = (string)($_POST['password_new'] ?? '');
+        $new2 = (string)($_POST['password_new2'] ?? '');
+
+        if (!password_verify($old, (string)$user['password'])) {
+            $err = '原密码错误';
+        } elseif (strlen($new) < 6) {
+            $err = '新密码至少 6 位';
+        } elseif ($new !== $new2) {
+            $err = '两次输入的新密码不一致';
+        } elseif (!empty($user['twofa_enabled'])) {
+            $code = trim((string)($_POST['twofa_code'] ?? ''));
+            $totp = new TOTP((string)$user['twofa_secret']);
+            if ($code === '' || !$totp->verify($code)) $err = '二步验证码错误';
+        }
+
+        if ($err === '') {
+            Database::exec("UPDATE users SET password=? WHERE user_id=?", [password_hash($new, PASSWORD_DEFAULT), $uid]);
+            session_regenerate_id(true);
+            settings_redirect('password', '密码已修改');
+        }
+    }
     // 主题切换
     if (isset($_POST['save_theme'])) {
         $t = $_POST['theme'] ?? '';
@@ -284,7 +308,7 @@ $bg_css  = background_css(resolve_background($user), current_theme($user));
     </div>
 
     <div style="height:110px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:16px;overflow:hidden;position:relative;background:var(--bg-primary)">
-        <div style="position:absolute;inset:0;<?= $bg_css ?>"></div>
+        <div style="position:absolute;inset:0;<?= htmlspecialchars($bg_css, ENT_COMPAT) ?>"></div>
         <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;text-shadow:0 1px 3px rgba(0,0,0,.8)">背景预览</div>
     </div>
 
@@ -340,12 +364,25 @@ $bg_css  = background_css(resolve_background($user), current_theme($user));
 </div>
 
 <?php elseif ($tab === 'password'): ?>
-<div class="card" style="max-width:400px">
+<div class="card" style="max-width:420px">
     <h2><i class="fa-solid fa-key"></i> 修改密码</h2>
-    <form method="post" action="/modify.php">
-        <div class="form-group"><label>原密码</label><input type="password" name="password_old" class="form-input" required></div>
-        <div class="form-group"><label>新密码</label><input type="password" name="password_new" class="form-input" required></div>
-        <button type="submit" class="btn btn-primary">修改密码</button>
+    <?php if (!empty($user['twofa_enabled'])): ?>
+    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">
+        你的账号已开启二步验证：需要先验证原密码，再输入验证器中的 6 位验证码。
+    </p>
+    <?php endif; ?>
+    <form method="post">
+        <div class="form-group"><label>原密码</label>
+            <input type="password" name="password_old" class="form-input" required autocomplete="current-password"></div>
+        <div class="form-group"><label>新密码（至少 6 位）</label>
+            <input type="password" name="password_new" class="form-input" required autocomplete="new-password"></div>
+        <div class="form-group"><label>确认新密码</label>
+            <input type="password" name="password_new2" class="form-input" required autocomplete="new-password"></div>
+        <?php if (!empty($user['twofa_enabled'])): ?>
+        <div class="form-group"><label>二步验证码</label>
+            <input type="text" name="twofa_code" class="form-input" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="6 位验证码" required></div>
+        <?php endif; ?>
+        <button type="submit" name="change_password" class="btn btn-primary btn-block">修改密码</button>
     </form>
 </div>
 <?php endif; ?>

@@ -2,6 +2,7 @@
 $title = '注册';
 require_once 'inc/config.php';
 require_once 'inc/db.php';
+require_once 'inc/functions.php';
 if (session_status() === PHP_SESSION_NONE) @session_start();
 if (isset($_SESSION['airoj_user'])) { header('Location: /index.php'); exit; }
 
@@ -9,13 +10,17 @@ $auth_theme = in_array($_COOKIE['airoj_theme'] ?? '', ['original', 'mdui3', 'bsh
     ? $_COOKIE['airoj_theme'] : 'original';
 
 $err = '';
+$site_logo = '';
+try { $site_logo = Database::getConfig('site_logo'); } catch (Exception $e) {}
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $uid = trim($_POST['user_id'] ?? '');
     $pw  = $_POST['password'] ?? '';
     $email = trim($_POST['email'] ?? '');
     $nick = trim($_POST['nick'] ?? '');
     if ($uid && $pw && $email) {
-        if (Database::fetchOne("SELECT user_id FROM users WHERE user_id=?", [$uid]))
+        if (!turnstile_verify($_POST['cf-turnstile-response'] ?? '')) {
+            $err = '人机验证失败，请重试';
+        } elseif (Database::fetchOne("SELECT user_id FROM users WHERE user_id=?", [$uid]))
             $err = '用户名已存在';
         else {
             Database::insert("INSERT INTO users (user_id,password,email,nick) VALUES (?,?,?,?)",
@@ -34,12 +39,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>注册 — AirOJ</title>
 <link rel="stylesheet" href="/css/fontawesome/css/all.min.css?v=6">
-<link rel="stylesheet" href="/css/style.css?v=13">
+<link rel="stylesheet" href="/css/style.css?v=16">
 <link rel="stylesheet" href="/css/themes.css?v=2">
 </head>
 <body class="theme-<?= $auth_theme ?>" style="display:flex;justify-content:center;align-items:center;min-height:100vh;background:var(--bg-primary)">
 <div style="width:100%;max-width:400px;padding:20px">
-<div style="text-align:center;margin-bottom:24px"><a href="/" style="font-size:28px;font-weight:800;color:var(--text-primary);text-decoration:none"><i class="fa-solid fa-plane"></i> <span style="color:var(--accent)">Air</span>OJ</a></div>
+<div style="text-align:center;margin-bottom:24px">
+    <a href="/" style="font-size:28px;font-weight:800;color:var(--text-primary);text-decoration:none;display:inline-block">
+    <?php if ($site_logo): ?>
+    <img src="/<?=htmlspecialchars($site_logo)?>" alt="logo" style="max-height:48px;max-width:100%;display:block">
+    <?php else: ?>
+    <i class="fa-solid fa-plane"></i> <span style="color:var(--accent)">Air</span>OJ
+    <?php endif; ?>
+    </a>
+</div>
 <div class="card" style="padding:32px">
     <h1 style="text-align:center;font-size:20px;margin-bottom:24px">注册</h1>
     <?php if ($err): ?><div class="alert alert-error"><?= htmlspecialchars($err) ?></div><?php endif; ?>
@@ -48,6 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="form-group"><label>密码</label><input type="password" name="password" class="form-input" required></div>
         <div class="form-group"><label>邮箱</label><input type="email" name="email" class="form-input" required></div>
         <div class="form-group"><label>昵称</label><input type="text" name="nick" class="form-input" placeholder="可选"></div>
+        <?= turnstile_widget() ?>
         <button type="submit" class="btn btn-primary btn-block">注册</button>
     </form>
     <div style="text-align:center;margin-top:16px;font-size:13px"><a href="/login.php">已有账号？登录</a></div>

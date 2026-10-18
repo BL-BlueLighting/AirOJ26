@@ -170,7 +170,7 @@ $pe_spj_exists = !empty($pe_spj_exists);
         fetch('/admin/problem_preview.php', {
             method: 'POST', body: new FormData(form), credentials: 'same-origin'
         }).then(function (r) { return r.ok ? r.text() : Promise.reject(r.status); })
-          .then(function (html) { if (my === seq) body.innerHTML = html; })
+          .then(function (html) { if (my === seq) { body.innerHTML = html; if (window.renderMath) window.renderMath(body); } })
           .catch(function () { if (my === seq) body.innerHTML = '<p style="color:var(--text-muted)">预览加载失败</p>'; });
     }
     function schedule() { clearTimeout(timer); timer = setTimeout(refresh, 220); }

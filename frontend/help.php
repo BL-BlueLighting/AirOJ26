@@ -62,11 +62,11 @@ require_once 'inc/functions.php';
     <div class="table-wrap"><table class="help-table">
         <thead><tr><th>类别</th><th>可选等级</th></tr></thead>
         <tbody>
-        <tr><td>BASIC</td><td>1 ~ 7 级</td></tr>
-        <tr><td>ADVANCED</td><td>4 ~ 12 级</td></tr>
-        <tr><td>EXPERT</td><td>10 ~ 13 级</td></tr>
-        <tr><td>MASTER</td><td>12 ~ 14 级</td></tr>
-        <tr><td>Re:MASTER</td><td>14 ~ 15 级</td></tr>
+        <tr><td><span class="diff-tag diff-basic">BASIC</span></td><td>1 ~ 7 级</td></tr>
+        <tr><td><span class="diff-tag diff-advanced">ADVANCED</span></td><td>4 ~ 12 级</td></tr>
+        <tr><td><span class="diff-tag diff-expert">EXPERT</span></td><td>10 ~ 13 级</td></tr>
+        <tr><td><span class="diff-tag diff-master">MASTER</span></td><td>12 ~ 14 级</td></tr>
+        <tr><td><span class="diff-tag diff-remaster">Re:MASTER</span></td><td>14 ~ 15 级</td></tr>
         </tbody>
     </table></div>
 
@@ -83,11 +83,11 @@ require_once 'inc/functions.php';
     <div class="table-wrap"><table class="help-table">
         <thead><tr><th>名字颜色</th><th>Rating 区间</th><th>可覆盖难度</th></tr></thead>
         <tbody>
-        <tr><td style="color:#22c55e">绿名</td><td>0 ~ 3000</td><td>BASIC、ADVANCED</td></tr>
-        <tr><td style="color:#eab308">黄名</td><td>3000 ~ 9000</td><td>绿名 + EXPERT</td></tr>
-        <tr><td style="color:#3b82f6">蓝名</td><td>9000 ~ 12000</td><td>黄名 + MASTER</td></tr>
-        <tr><td style="color:#ef4444">红名</td><td>12000 ~ 15000</td><td>蓝名 + Re:MASTER 14 级</td></tr>
-        <tr><td style="background:<?= rainbow_gradient_css() ?>;-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:700">彩虹名</td><td>15000 ~ 20000</td><td>红名 + Re:MASTER 15 级</td></tr>
+        <tr><td style="color:#22c55e">绿名</td><td>0 ~ 3000</td><td><span class="diff-tag diff-basic">BASIC</span><span class="diff-tag diff-advanced">ADVANCED</span></td></tr>
+        <tr><td style="color:#eab308">黄名</td><td>3000 ~ 9000</td><td>绿名 + <span class="diff-tag diff-expert">EXPERT</span></td></tr>
+        <tr><td style="color:#3b82f6">蓝名</td><td>9000 ~ 12000</td><td>黄名 + <span class="diff-tag diff-master">MASTER</span></td></tr>
+        <tr><td style="color:#ef4444">红名</td><td>12000 ~ 15000</td><td>蓝名 + <span class="diff-tag diff-remaster">Re:MASTER</span> 14 级</td></tr>
+        <tr><td style="background:<?= rainbow_gradient_css() ?>;-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:700">彩虹名</td><td>15000 ~ 20000</td><td>红名 + <span class="diff-tag diff-remaster">Re:MASTER</span> 15 级</td></tr>
         </tbody>
     </table></div>
 
@@ -96,7 +96,7 @@ require_once 'inc/functions.php';
     <blockquote style="margin:10px 0;padding:10px 16px;border-left:3px solid var(--accent-gold);background:var(--bg-secondary);color:var(--text-secondary);font-size:13px">
         该题目也许超出您能力范围，若您能力范围支持做此题，在您通过本题后您的 Rating 将会提升到（当前等级的下一级最低积分 - 500）。
     </blockquote>
-    <p><strong>Re:MASTER 15 级题目不允许越级作答</strong>，低颜色分级用户无法提交。</p>
+    <p><span class="diff-tag diff-remaster">Re:MASTER</span> <strong>15 级题目不允许越级作答</strong>，低颜色分级用户无法提交。</p>
 </div>
 
 <div class="card help-sec" id="rating">

@@ -32,7 +32,7 @@ $role_info = user_role_html($uid);
 <?php if (!empty($user['bio'])): ?>
 <div class="card">
     <h2><i class="fa-solid fa-pen-to-square"></i> 个人简介</h2>
-    <div style="font-size:14px;color:var(--text-secondary);line-height:1.7"><?php
+    <div class="math-content" style="font-size:14px;color:var(--text-secondary);line-height:1.7"><?php
         require_once 'inc/Parsedown.php';
         $pd = new Parsedown();
         echo $pd->text($user['bio']);

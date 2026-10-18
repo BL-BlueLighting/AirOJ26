@@ -66,6 +66,17 @@ if (isset($_GET['clear_footer'])) {
     $ok = '页脚已恢复默认';
 }
 
+// Cloudflare Turnstile（注册 / 登录人机验证）
+if (isset($_POST['save_turnstile'])) {
+    Database::setConfig('turnstile_site_key', trim($_POST['turnstile_site_key'] ?? ''));
+    Database::setConfig('turnstile_secret_key', trim($_POST['turnstile_secret_key'] ?? ''));
+    $ok = 'Turnstile 设置已保存';
+}
+if (isset($_GET['clear_turnstile'])) {
+    Database::exec("DELETE FROM system_config WHERE key_name IN ('turnstile_site_key','turnstile_secret_key')");
+    $ok = 'Turnstile 已关闭';
+}
+
 // 清除设置
 if (isset($_GET['clear_logo'])) {
     Database::exec("DELETE FROM system_config WHERE key_name='site_logo'");
@@ -82,7 +93,11 @@ $site_logo = Database::getConfig('site_logo');
 $site_favicon = Database::getConfig('site_favicon');
 $site_background = Database::getConfig('site_background');
 $site_footer = Database::getConfig('site_footer');
-require __DIR__ . '/../inc/header.php'; ?>
+$turnstile_site = Database::getConfig('turnstile_site_key');
+$turnstile_secret = Database::getConfig('turnstile_secret_key');
+$admin_current_group = 'appearance';
+$admin_current_item  = 'site_settings';
+require __DIR__ . '/_layout_top.php'; ?>
 <div class="page-header"><h1><i class="fa-solid fa-gear"></i> 系统设置</h1></div>
 
 <?php if ($err): ?><div class="alert alert-error"><?=htmlspecialchars($err)?></div><?php endif; ?>
@@ -133,7 +148,7 @@ require __DIR__ . '/../inc/header.php'; ?>
     <?php if ($site_background): ?>
     <div style="margin-bottom:12px;padding:12px;background:var(--bg-secondary);border-radius:var(--radius)">
         <div style="height:90px;border-radius:var(--radius);overflow:hidden;position:relative;background:var(--bg-primary);margin-bottom:8px">
-            <div style="position:absolute;inset:0;<?= background_css($site_background, current_theme($_SESSION['airoj_user'] ?? null)) ?>"></div>
+            <div style="position:absolute;inset:0;<?= htmlspecialchars(background_css($site_background, current_theme($_SESSION['airoj_user'] ?? null)), ENT_COMPAT) ?>"></div>
         </div>
         <div style="display:flex;align-items:center;gap:12px">
             <span style="font-size:12px;color:var(--text-muted);word-break:break-all"><?=htmlspecialchars($site_background)?></span>
@@ -169,4 +184,25 @@ require __DIR__ . '/../inc/header.php'; ?>
     </form>
 </div>
 
-<?php require __DIR__ . '/../inc/footer.php'; ?>
+<div class="card" style="max-width:600px">
+    <h2><i class="fa-solid fa-shield-halved"></i> Cloudflare Turnstile</h2>
+    <p style="color:var(--text-secondary);font-size:13px;margin-bottom:12px">
+        用于注册与登录的人机验证，防止机器人批量注册。<strong>同时填写 Site Key 与 Secret Key 后自动启用</strong>；留空保存即关闭。<br>
+        在 <a href="https://dash.cloudflare.com/" target="_blank" rel="noopener">Cloudflare 控制台</a> 创建 Turnstile 站点并添加域名即可获得密钥。
+    </p>
+    <?php if ($turnstile_site && $turnstile_secret): ?>
+    <div class="alert alert-success" style="font-size:12px">✅ Turnstile 已启用（Site Key: <?=htmlspecialchars(mb_substr($turnstile_site, 0, 14))?>…）</div>
+    <?php endif; ?>
+    <form method="post">
+        <div class="form-group"><label>Site Key</label>
+            <input type="text" name="turnstile_site_key" class="form-input" value="<?=htmlspecialchars($turnstile_site)?>" placeholder="0x4AAAAAAA..."></div>
+        <div class="form-group"><label>Secret Key</label>
+            <input type="text" name="turnstile_secret_key" class="form-input" value="<?=htmlspecialchars($turnstile_secret)?>" placeholder="0x4AAAAAAA..."></div>
+        <button type="submit" name="save_turnstile" class="btn btn-primary">保存</button>
+        <?php if ($turnstile_site || $turnstile_secret): ?>
+        <a href="?clear_turnstile=1" class="btn btn-outline" onclick="return confirm('关闭 Turnstile？')">关闭</a>
+        <?php endif; ?>
+    </form>
+</div>
+
+<?php require __DIR__ . '/_layout_bottom.php'; ?>

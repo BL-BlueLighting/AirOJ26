@@ -13,6 +13,10 @@
  *   $db->exec("UPDATE submissions SET status = ? WHERE id = ?", [$status, $id]);
  */
 
+// 即使调用方没有先加载 config.php，也保证时间与 SQLite localtime 为 UTC+8
+date_default_timezone_set('Asia/Shanghai');
+putenv('TZ=Asia/Shanghai');
+
 class Database
 {
     public static ?PDO $instance = null;
@@ -56,6 +60,8 @@ class Database
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES   => false,
             ]);
+            // 让 MySQL 的 CURRENT_TIMESTAMP / NOW() 与站点时区一致
+            $pdo->exec("SET time_zone = '+08:00'");
         } else {
             // SQLite
             $dir = dirname(DB_SQLITE_PATH);
@@ -342,6 +348,37 @@ class Database
                 )
             ");
             $pdo->exec("
+                CREATE TABLE IF NOT EXISTS chapters (
+                    chapter_id  INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title       TEXT NOT NULL DEFAULT '',
+                    description TEXT,
+                    background  TEXT,
+                    creator     TEXT NOT NULL DEFAULT '',
+                    created_at  TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+                )
+            ");
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS chapter_problem (
+                    chapter_id INTEGER NOT NULL DEFAULT 0,
+                    problem_id INTEGER NOT NULL DEFAULT 0,
+                    position   INTEGER NOT NULL DEFAULT 0,
+                    PRIMARY KEY (chapter_id, problem_id)
+                )
+            ");
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS messages (
+                    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                    from_user    TEXT NOT NULL DEFAULT '',
+                    to_user      TEXT NOT NULL DEFAULT '',
+                    subject      TEXT NOT NULL DEFAULT '',
+                    content      TEXT NOT NULL DEFAULT '',
+                    is_read      INTEGER NOT NULL DEFAULT 0,
+                    from_deleted INTEGER NOT NULL DEFAULT 0,
+                    to_deleted   INTEGER NOT NULL DEFAULT 0,
+                    created_at   TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+                )
+            ");
+            $pdo->exec("
                 CREATE TABLE IF NOT EXISTS bbs_topic (
                     topic_id    INTEGER PRIMARY KEY AUTOINCREMENT,
                     problem_id  INTEGER NOT NULL DEFAULT 0,
@@ -528,6 +565,39 @@ class Database
                 level      INT NOT NULL DEFAULT 1,
                 position   VARCHAR(8) NOT NULL DEFAULT 'mid',
                 PRIMARY KEY (problem_id, category, level, position)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS chapters (
+                chapter_id  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                title       VARCHAR(200) NOT NULL DEFAULT '',
+                description LONGTEXT,
+                background  LONGTEXT,
+                creator     VARCHAR(100) NOT NULL DEFAULT '',
+                created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS chapter_problem (
+                chapter_id INT UNSIGNED NOT NULL DEFAULT 0,
+                problem_id INT UNSIGNED NOT NULL DEFAULT 0,
+                position   INT UNSIGNED NOT NULL DEFAULT 0,
+                PRIMARY KEY (chapter_id, problem_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS messages (
+                id           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                from_user    VARCHAR(100) NOT NULL DEFAULT '',
+                to_user      VARCHAR(100) NOT NULL DEFAULT '',
+                subject      VARCHAR(200) NOT NULL DEFAULT '',
+                content      LONGTEXT,
+                is_read      TINYINT NOT NULL DEFAULT 0,
+                from_deleted TINYINT NOT NULL DEFAULT 0,
+                to_deleted   TINYINT NOT NULL DEFAULT 0,
+                created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_to (to_user),
+                INDEX idx_from (from_user)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         ");
         $pdo->exec("

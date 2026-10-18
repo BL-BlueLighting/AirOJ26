@@ -122,7 +122,9 @@ $pe_diffs     = problem_difficulties((string)$id);
 $pe_spj_exists = spj_source_path((string)$id) !== null;
 $pe_variant   = $isMember;
 
-require __DIR__ . '/../inc/header.php'; ?>
+$admin_current_group = 'problem';
+$admin_current_item  = 'problem_list';
+require __DIR__ . '/_layout_top.php'; ?>
 <div class="page-header">
     <h1><i class="fa-solid fa-pen-to-square"></i> 编辑题目 #<?= $id ?></h1>
     <div>
@@ -209,4 +211,4 @@ require __DIR__ . '/../inc/header.php'; ?>
     </form>
 </div>
 
-<?php require __DIR__ . '/../inc/footer.php'; ?>
+<?php require __DIR__ . '/_layout_bottom.php'; ?>

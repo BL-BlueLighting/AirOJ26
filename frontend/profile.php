@@ -55,8 +55,9 @@ require 'inc/header.php'; ?>
             <div class="row"><span class="lbl">注册时间</span><span class="val"><?= $user['reg_time'] ?? '-' ?></span></div>
         </div>
 
-        <div style="margin-top:12px;text-align:center">
+        <div style="margin-top:12px;text-align:center;display:flex;gap:8px;justify-content:center">
             <a href="/settings.php?tab=profile" class="btn btn-outline btn-sm"><i class="fa-solid fa-gear"></i> 修改资料</a>
+            <a href="/messages.php?compose=1&amp;to=<?= urlencode($uid) ?>" class="btn btn-outline btn-sm"><i class="fa-solid fa-envelope"></i> 发站内信</a>
         </div>
     </div>
 

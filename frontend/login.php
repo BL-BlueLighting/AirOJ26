@@ -15,6 +15,10 @@ $err = '';
 $show_2fa = false;
 $temp_uid = '';
 
+// 站点 Logo（后台配置，未设置时回落到文字 Logo）
+$site_logo = '';
+try { $site_logo = Database::getConfig('site_logo'); } catch (Exception $e) {}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $uid = trim($_POST['user_id'] ?? '');
     $pw  = $_POST['password'] ?? '';
@@ -37,19 +41,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else { $err = '2FA 配置异常'; }
         }
     } else {
-        // 第一步：用户名密码验证
+        // 第一步：用户名密码验证（开启 Turnstile 时先做人机校验）
         if ($uid && $pw) {
-            $row = Database::fetchOne("SELECT * FROM users WHERE user_id=?", [$uid]);
-            if ($row && password_verify($pw, $row['password'])) {
-                if ($row['twofa_enabled']) {
-                    $_SESSION['twofa_uid'] = $uid;
-                    $show_2fa = true;
-                    $temp_uid = $uid;
-                } else {
-                    $_SESSION['airoj_user'] = $row;
-                    header('Location: /index.php'); exit;
-                }
-            } else { $err = '用户名或密码错误'; }
+            if (!turnstile_verify($_POST['cf-turnstile-response'] ?? '')) {
+                $err = '人机验证失败，请重试';
+            } else {
+                $row = Database::fetchOne("SELECT * FROM users WHERE user_id=?", [$uid]);
+                if ($row && password_verify($pw, $row['password'])) {
+                    if ($row['twofa_enabled']) {
+                        $_SESSION['twofa_uid'] = $uid;
+                        $show_2fa = true;
+                        $temp_uid = $uid;
+                    } else {
+                        $_SESSION['airoj_user'] = $row;
+                        header('Location: /index.php'); exit;
+                    }
+                } else { $err = '用户名或密码错误'; }
+            }
         } else { $err = '请填写用户名和密码'; }
     }
 }
@@ -60,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>登录 — AirOJ</title>
 <link rel="stylesheet" href="/css/fontawesome/css/all.min.css?v=6">
-<link rel="stylesheet" href="/css/style.css?v=13">
+<link rel="stylesheet" href="/css/style.css?v=16">
 <link rel="stylesheet" href="/css/themes.css?v=2">
 <style>
 .auth-wrap { display: flex; justify-content: center; align-items: center; min-height: 100vh; background: var(--bg-primary); }
@@ -84,7 +92,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body class="theme-<?= $auth_theme ?>">
 <div class="auth-wrap">
 <div class="auth-box">
-<div class="auth-logo"><a href="/"><i class="fa-solid fa-plane"></i> <span>Air</span>OJ</a></div>
+<div class="auth-logo">
+    <a href="/">
+    <?php if ($site_logo): ?>
+    <img src="/<?=htmlspecialchars($site_logo)?>" alt="logo" style="max-height:48px;max-width:100%">
+    <?php else: ?>
+    <i class="fa-solid fa-plane"></i> <span>Air</span>OJ
+    <?php endif; ?>
+    </a>
+</div>
 
 <div class="card" style="padding:32px">
     <?php if ($show_2fa): ?>
@@ -161,6 +177,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <form method="post">
         <div class="form-group"><label>用户名</label><input type="text" name="user_id" class="form-input" required autocomplete="username"></div>
         <div class="form-group"><label>密码</label><input type="password" name="password" class="form-input" required autocomplete="current-password"></div>
+        <?= turnstile_widget() ?>
         <button type="submit" class="btn btn-primary btn-block">登录</button>
     </form>
     <div style="text-align:center;margin-top:16px;font-size:13px">

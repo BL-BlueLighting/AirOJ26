@@ -45,8 +45,16 @@ try {
     // Logo & Favicon & 站点背景 from system_config
     $site_logo = Database::getConfig('site_logo');
     $site_favicon = Database::getConfig('site_favicon');
-    // 背景：用户自定义优先，没有则回落到管理员配置的站点背景；遮罩颜色随主题变化
-    $background_style = background_css(resolve_background($user), $theme);
+    if ($user) {
+        $unread_messages = (int)(Database::fetchOne(
+            "SELECT COUNT(*) AS c FROM messages WHERE to_user=? AND is_read=0 AND to_deleted=0",
+            [$user['user_id']])['c'] ?? 0);
+    }
+    // 背景：页面级覆盖（如章节背景）> 用户自定义 > 管理员配置的站点背景；遮罩颜色随主题变化
+    $page_bg = isset($page_background_override) && trim((string)$page_background_override) !== ''
+        ? $page_background_override
+        : resolve_background($user);
+    $background_style = background_css($page_bg, $theme);
 } catch (Exception $e) {}
 
 if ($background_style !== '') {
@@ -64,8 +72,12 @@ if ($theme === 'mdui3') {
 <title><?= ($title ?? '首页') . ' — ' . $site_name ?></title>
 <link rel="stylesheet" href="/css/fontawesome/css/all.min.css?v=6">
 <?php if ($theme === 'mdui3'): ?><link rel="stylesheet" href="/css/mdui/mdui.css?v=1"><?php endif; ?>
-<link rel="stylesheet" href="/css/style.css?v=13">
+<link rel="stylesheet" href="/css/style.css?v=18">
 <link rel="stylesheet" href="/css/themes.css?v=2">
+<link rel="stylesheet" href="/vendor/katex/css/katex.min.css">
+<script defer src="/vendor/katex/js/katex.min.js"></script>
+<script defer src="/vendor/katex/js/auto-render.min.js"></script>
+<script defer src="/js/math.js?v=1"></script>
 <?php if ($site_favicon): ?><link rel="icon" href="/<?=$site_favicon?>"><?php else: ?><link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%234da6ff'/><text x='16' y='24' font-size='21' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='white'>A</text></svg>"><?php endif; ?>
 <?php if ($background_style): ?><style>body{<?= $background_style ?>}</style><?php endif; ?></head>
 <body<?= !empty($body_class) ? ' class="' . htmlspecialchars($body_class) . '"' : '' ?>>
@@ -76,6 +88,7 @@ if ($theme === 'mdui3') {
 <nav class="site-nav">
 <a href="/index.php" class="nav-link <?= $page === 'index' ? 'active' : '' ?>">首页</a>
 <a href="/problems.php" class="nav-link <?= $page === 'problems' ? 'active' : '' ?>">题目</a>
+<a href="/chapters.php" class="nav-link <?= $page === 'chapters' || $page === 'chapter' ? 'active' : '' ?>">章节</a>
 <a href="/status.php" class="nav-link <?= $page === 'status' ? 'active' : '' ?>">状态</a>
 <a href="/ranklist.php" class="nav-link <?= $page === 'ranklist' ? 'active' : '' ?>">排名</a>
 <a href="/contest.php" class="nav-link <?= $page === 'contest' ? 'active' : '' ?>">比赛</a>
@@ -92,6 +105,9 @@ if ($theme === 'mdui3') {
 </select>
 <?php if ($is_admin): ?><a href="/admin/index.php" class="btn btn-sm" style="background:var(--accent-gold);color:#000">管理</a><?php endif; ?>
 <?php if ($user): ?>
+<a href="/messages.php" class="btn btn-sm" style="background:var(--bg-hover);color:var(--text-secondary);position:relative" title="站内信">
+    <i class="fa-solid fa-envelope"></i><?php if (($unread_messages ?? 0) > 0): ?><span class="msg-badge"><?= ($unread_messages > 99 ? '99+' : (int)$unread_messages) ?></span><?php endif; ?>
+</a>
 <a href="/settings.php" class="btn btn-sm" style="background:var(--bg-hover);color:var(--text-secondary)" title="设置"><i class="fa-solid fa-gear"></i></a>
 <a href="/profile.php" class="btn btn-outline btn-sm"><?= user_role_html($user['user_id'], $user['nick'] ?: $user['user_id']) ?></a>
 <a href="/logout.php" class="btn btn-sm" style="background:var(--bg-hover);color:var(--text-secondary)">退出</a>

@@ -6,65 +6,65 @@ if (session_status() === PHP_SESSION_NONE) @session_start();
 $is_admin = Database::fetchOne("SELECT * FROM privilege WHERE user_id=? AND right_str='administrator'", [$_SESSION['airoj_user']['user_id'] ?? '']);
 if (!isset($_SESSION['airoj_user']) || !$is_admin) { header('Location: /login.php'); exit; }
 
-$panel = $_GET['panel'] ?? 'dashboard';
+$panel = $_GET['panel'] ?? 'home';
 $user = $_SESSION['airoj_user'];
 require __DIR__ . '/../inc/header.php';
-$panels = [
-    'dashboard' => '<i class="fa-solid fa-chart-simple"></i> 控制台', 'problem_list' => '<i class="fa-solid fa-clipboard-list"></i> 题目列表', 'problem_add' => '<i class="fa-solid fa-plus"></i> 添加题目',
-    'problem_import' => '<i class="fa-solid fa-right-to-bracket"></i> 导入题目', 'user_list' => '<i class="fa-solid fa-user"></i> 用户列表', 'user_edit' => '<i class="fa-solid fa-pen-to-square"></i> 修改用户',
-    'user_batch' => '<i class="fa-solid fa-users"></i> 批量添加', 'privilege_list' => '<i class="fa-solid fa-key"></i> 权限列表', 'privilege_add' => '<i class="fa-solid fa-plus"></i> 添加权限',
-    'privilege_log' => '<i class="fa-solid fa-scroll"></i> 权限日志', 'news_list' => '<i class="fa-solid fa-bullhorn"></i> 公告列表', 'news_add' => '<i class="fa-solid fa-plus"></i> 添加公告',
-    'news_scroll' => '<i class="fa-solid fa-newspaper"></i> 滚动公告', 'system_info' => '<i class="fa-solid fa-circle-info"></i> 系统信息', 'judge_queue' => '<i class="fa-solid fa-bolt"></i> 评测队列',
-    'version_info' => '<i class="fa-solid fa-thumbtack"></i> 版本信息',
+require_once __DIR__ . '/_admin_nav.php';
+
+$isHome = in_array($panel, ['home', 'dashboard'], true);
+if ($isHome) $panel = 'home';
+[$currentGroup, $currentItem] = $admin_panel_map[$panel] ?? [null, null];
+$group = $currentGroup ? $admin_groups[$currentGroup] : null;
+?>
+<?php if ($isHome): ?>
+<?php
+$stats = [
+    'problems' => Database::fetchOne("SELECT COUNT(*) AS c FROM problem")['c'] ?? 0,
+    'users'    => Database::fetchOne("SELECT COUNT(*) AS c FROM users")['c'] ?? 0,
+    'subs'     => Database::fetchOne("SELECT COUNT(*) AS c FROM submissions")['c'] ?? 0,
+    'teams'    => Database::fetchOne("SELECT COUNT(*) AS c FROM teams")['c'] ?? 0,
+    'admins'   => Database::fetchOne("SELECT COUNT(*) AS c FROM privilege WHERE right_str='administrator'")['c'] ?? 0,
 ];
 ?>
-<style>
-.admin-wrap { display: flex; gap: 0; min-height: calc(100vh - 140px); margin: -24px -16px; }
-.admin-sidebar { width: 200px; flex-shrink: 0; background: var(--bg-secondary); border-right: 1px solid var(--border); padding: 12px 0; overflow-y: auto; position: sticky; top: 54px; max-height: calc(100vh - 54px); }
-.admin-sidebar .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); padding: 12px 16px 4px; font-weight: 600; }
-.admin-sidebar a { display: block; padding: 7px 16px; font-size: 13px; color: var(--text-secondary); text-decoration: none; transition: all .15s; border-left: 3px solid transparent; }
-.admin-sidebar a:hover { background: var(--bg-hover); color: var(--text-primary); }
-.admin-sidebar a.active { background: var(--bg-hover); color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
-.admin-content { flex: 1; padding: 24px; min-width: 0; }
-@media (max-width: 768px) { .admin-wrap { flex-direction: column; margin: 0; } .admin-sidebar { width: 100%; position: static; max-height: none; border-right: none; border-bottom: 1px solid var(--border); } }
-</style>
-<div class="admin-wrap">
-<div class="admin-sidebar">
-    <div class="section-title"><i class="fa-solid fa-clipboard-list"></i> 题目</div>
-    <a href="?panel=problem_list" class="<?=$panel==='problem_list'?'active':''?>">题目列表</a>
-    <a href="/admin/problem_add.php" class="<?=basename($_SERVER['SCRIPT_NAME']??'')==='problem_add.php'?'active':''?>">添加题目</a>
-    <a href="?panel=problem_import" class="<?=$panel==='problem_import'?'active':''?>">导入题目</a>
-
-    <div class="section-title"><i class="fa-solid fa-user"></i> 用户</div>
-    <a href="?panel=user_list" class="<?=$panel==='user_list'?'active':''?>">用户列表</a>
-    <a href="?panel=user_edit" class="<?=$panel==='user_edit'?'active':''?>">修改用户</a>
-    <a href="?panel=user_batch" class="<?=$panel==='user_batch'?'active':''?>">批量添加</a>
-
-    <div class="section-title"><i class="fa-solid fa-key"></i> 权限</div>
-    <a href="?panel=privilege_list" class="<?=$panel==='privilege_list'?'active':''?>">权限列表</a>
-    <a href="?panel=privilege_add" class="<?=$panel==='privilege_add'?'active':''?>">添加权限</a>
-    <a href="?panel=privilege_log" class="<?=$panel==='privilege_log'?'active':''?>">权限日志</a>
-
-    <div class="section-title"><i class="fa-solid fa-flag-checkered"></i> 比赛</div>
-    <a href="/admin/contest_list.php" class="<?=basename($_SERVER['SCRIPT_NAME']??'')==='contest_list.php'?'active':''?>">比赛列表</a>
-    <a href="/admin/contest_edit.php?id=0" class="<?=basename($_SERVER['SCRIPT_NAME']??'')==='contest_edit.php'?'active':''?>">添加比赛</a>
-
-    <div class="section-title"><i class="fa-solid fa-users"></i> 团队</div>
-    <a href="/admin/team_list.php" class="<?=basename($_SERVER['SCRIPT_NAME']??'')==='team_list.php'?'active':''?>">团队管理</a>
-
-    <div class="section-title"><i class="fa-solid fa-bullhorn"></i> 公告</div>
-    <a href="?panel=news_list" class="<?=$panel==='news_list'?'active':''?>">公告列表</a>
-    <a href="?panel=news_add" class="<?=$panel==='news_add'?'active':''?>">添加公告</a>
-    <a href="?panel=news_scroll" class="<?=$panel==='news_scroll'?'active':''?>">滚动公告</a>
-
-    <div class="section-title"><i class="fa-solid fa-bolt"></i> 系统</div>
-    <a href="?panel=system_info" class="<?=$panel==='system_info'?'active':''?>">系统信息</a>
-    <a href="?panel=judge_queue" class="<?=$panel==='judge_queue'?'active':''?>">评测队列</a>
-    <a href="?panel=version_info" class="<?=$panel==='version_info'?'active':''?>">版本信息</a>
-    <div class="section-title"><i class="fa-solid fa-palette"></i> 外观</div>
-    <a href="/admin/settings.php" class="<?=basename($_SERVER['SCRIPT_NAME']??'')==='settings.php'?'active':''?>">Logo / Favicon</a>
+<div class="admin-home">
+    <div class="admin-hello">Hello,</div>
+    <h2 class="admin-welcome">Welcome Back!</h2>
+    <div class="admin-dear">
+        <h4>Dear</h4>
+        <h1><?= user_role_html($user['user_id'], $user['nick'] ?: $user['user_id']) ?></h1>
+    </div>
+    <p class="admin-pick">请选择功能</p>
+    <div class="admin-tiles">
+        <?php foreach ($admin_groups as $g): ?>
+        <a href="<?= $g['landing'] ?>" class="admin-tile">
+            <i class="fa-solid <?= $g['icon'] ?>"></i>
+            <span><?= htmlspecialchars($g['title']) ?></span>
+            <small><?= htmlspecialchars($g['desc']) ?></small>
+        </a>
+        <?php endforeach; ?>
+    </div>
+    <div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
+        <div class="stat-card"><div class="stat-label">题目</div><div class="stat-value" style="color:var(--accent)"><?=$stats['problems']?></div></div>
+        <div class="stat-card"><div class="stat-label">用户</div><div class="stat-value" style="color:var(--green)"><?=$stats['users']?></div></div>
+        <div class="stat-card"><div class="stat-label">提交</div><div class="stat-value" style="color:var(--yellow)"><?=$stats['subs']?></div></div>
+        <div class="stat-card"><div class="stat-label">团队</div><div class="stat-value" style="color:var(--accent-gold)"><?=$stats['teams']?></div></div>
+        <div class="stat-card"><div class="stat-label">管理员</div><div class="stat-value"><?=$stats['admins']?></div></div>
+    </div>
 </div>
-<div class="admin-content">
+<?php else: ?>
+<div class="admin-shell">
+    <aside class="admin-menu">
+        <?php if ($group): ?>
+        <div class="admin-menu-title"><i class="fa-solid <?= $group['icon'] ?>"></i> <?= htmlspecialchars($group['title']) ?></div>
+        <div class="admin-menu-divider"></div>
+        <?php foreach ($group['items'] as $itemKey => $item): ?>
+        <a href="<?= $item[0] ?>" class="<?= $itemKey === $currentItem ? 'active' : '' ?>"><?= htmlspecialchars($item[1]) ?></a>
+        <?php endforeach; ?>
+        <a href="/admin/index.php" class="admin-menu-home"><i class="fa-solid fa-arrow-left"></i> 返回管理首页</a>
+        <?php endif; ?>
+    </aside>
+    <div class="admin-page">
+        <div class="admin-content">
 <?php
 $err = ''; $ok = '';
 
@@ -711,6 +711,8 @@ function import_hustoj(string $dir, string $name): void {
         <div class="stat-card"><div class="stat-label">JudgeServer URL</div><div class="stat-value" style="font-size:14px"><?=htmlspecialchars(JUDGE_SERVER_URL)?></div></div>
     </div>
 <?php } ?>
-
-</div></div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 <?php require __DIR__ . '/../inc/footer.php'; ?>

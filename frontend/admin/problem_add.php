@@ -86,7 +86,9 @@ $pe_show_test = true;
 $pe_diffs     = [];
 $pe_variant   = (bool)$parent;
 
-require __DIR__ . '/../inc/header.php'; ?>
+$admin_current_group = 'problem';
+$admin_current_item  = 'problem_add';
+require __DIR__ . '/_layout_top.php'; ?>
 <div class="page-header">
     <h1>
         <i class="fa-solid fa-<?= $parent ? 'layer-group' : 'plus' ?>"></i>
@@ -101,4 +103,4 @@ require __DIR__ . '/../inc/header.php'; ?>
 
 <?php require __DIR__ . '/_problem_form.php'; ?>
 
-<?php require __DIR__ . '/../inc/footer.php'; ?>
+<?php require __DIR__ . '/_layout_bottom.php'; ?>

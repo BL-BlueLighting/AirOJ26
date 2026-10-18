@@ -6,6 +6,11 @@
  * MySQL 需要填写 DB_HOST / DB_NAME / DB_USER / DB_PASS
  */
 
+// 全站统一使用 UTC+8（Asia/Shanghai）
+// putenv 同时让 SQLite 的 datetime('now','localtime') 使用东八区
+date_default_timezone_set('Asia/Shanghai');
+putenv('TZ=Asia/Shanghai');
+
 define('DB_DRIVER', getenv('DB_DRIVER') ?: 'sqlite');     // sqlite | mysql
 
 // SQLite

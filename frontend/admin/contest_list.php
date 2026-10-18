@@ -12,7 +12,9 @@ $counts = [];
 foreach (Database::fetchAll("SELECT contest_id, COUNT(*) AS c FROM contest_problem GROUP BY contest_id") as $r) {
     $counts[(int)$r['contest_id']] = (int)$r['c'];
 }
-require __DIR__ . '/../inc/header.php'; ?>
+$admin_current_group = 'contest';
+$admin_current_item  = 'contest_list';
+require __DIR__ . '/_layout_top.php'; ?>
 <div class="page-header">
     <h1><i class="fa-solid fa-flag-checkered"></i> 比赛管理</h1>
     <a href="contest_edit.php?id=0" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> 添加比赛</a>
@@ -38,4 +40,4 @@ require __DIR__ . '/../inc/header.php'; ?>
 </tr>
 <?php endforeach; endif; ?>
 </tbody></table></div></div>
-<?php require __DIR__ . '/../inc/footer.php'; ?>
+<?php require __DIR__ . '/_layout_bottom.php'; ?>

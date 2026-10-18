@@ -131,7 +131,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>安装 — AirOJ</title>
 <link rel="stylesheet" href="css/fontawesome/css/all.min.css">
-<link rel="stylesheet" href="css/style.css?v=13">
+<link rel="stylesheet" href="css/style.css?v=16">
 <style>
 .install-box { max-width: 600px; margin: 60px auto; }
 .install-box .card { padding: 32px; }

@@ -65,7 +65,9 @@ if ($id) {
         $linked[] = (int)$r['problem_id'];
     }
 }
-require __DIR__ . '/../inc/header.php'; ?>
+$admin_current_group = 'contest';
+$admin_current_item  = $id ? 'contest_list' : 'contest_add';
+require __DIR__ . '/_layout_top.php'; ?>
 <div class="page-header">
     <h1><?= $id ? '<i class="fa-solid fa-pen-to-square"></i> 编辑比赛 #' . $id : '<i class="fa-solid fa-plus"></i> 添加比赛' ?></h1>
     <a href="contest_list.php" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> 返回列表</a>
@@ -127,4 +129,4 @@ require __DIR__ . '/../inc/header.php'; ?>
     <?php else: ?><p style="color:var(--text-muted)">尚未关联题目</p><?php endif; ?>
 </div>
 <?php endif; ?>
-<?php require __DIR__ . '/../inc/footer.php'; ?>
+<?php require __DIR__ . '/_layout_bottom.php'; ?>

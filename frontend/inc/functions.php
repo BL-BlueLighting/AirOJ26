@@ -258,7 +258,8 @@ function get_language_configs(): array
             'compile_memory_check_only' => true,
             'run_options' => ['memory_limit_check_only' => 1],
             'run_command' => '/usr/bin/java -Xmx256m -XX:CompressedClassSpaceSize=128m -cp {exe_dir} Main',
-            'seccomp_rule' => 'general',
+            // Java 21 在 Judger 的 general seccomp 规则下会静默退出，Java 不使用 seccomp
+            'seccomp_rule' => null,
             'src_name' => 'Main.java',
             'exe_name' => 'Main.class',
         ],
@@ -922,6 +923,60 @@ function set_theme(string $theme, ?array $user): bool
     return true;
 }
 
+/* ────────────────────────── Cloudflare Turnstile ────────────────────────── */
+
+function turnstile_keys(): array
+{
+    return [
+        'site'   => Database::getConfig('turnstile_site_key'),
+        'secret' => Database::getConfig('turnstile_secret_key'),
+    ];
+}
+
+function turnstile_enabled(): bool
+{
+    $k = turnstile_keys();
+    return $k['site'] !== '' && $k['secret'] !== '';
+}
+
+/** 服务端校验 Turnstile token；未配置密钥时直接放行 */
+function turnstile_verify(?string $token): bool
+{
+    $k = turnstile_keys();
+    if ($k['secret'] === '') return true;
+
+    $token = trim((string)$token);
+    if ($token === '') return false;
+
+    $ch = curl_init('https://challenges.cloudflare.com/turnstile/v0/siteverify');
+    curl_setopt_array($ch, [
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => http_build_query([
+            'secret'   => $k['secret'],
+            'response' => $token,
+            'remoteip' => $_SERVER['REMOTE_ADDR'] ?? '',
+        ]),
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 10,
+        CURLOPT_CONNECTTIMEOUT => 5,
+    ]);
+    $resp = curl_exec($ch);
+    curl_close($ch);
+    if ($resp === false) return false;
+
+    $data = json_decode((string)$resp, true);
+    return is_array($data) && !empty($data['success']);
+}
+
+/** 渲染 Turnstile 组件（未配置 Site Key 时输出空字符串） */
+function turnstile_widget(): string
+{
+    $k = turnstile_keys();
+    if ($k['site'] === '') return '';
+    return '<div class="cf-turnstile" data-sitekey="' . htmlspecialchars($k['site']) . '" data-language="zh-cn" data-theme="auto"></div>'
+         . '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>';
+}
+
 /* ────────────────────────── 页面背景 ────────────────────────── */
 
 /**
@@ -963,7 +1018,9 @@ function background_css(string $bg, string $theme = 'original'): string
     }
     // 图片上盖一层遮罩保证文字可读：白色主题用浅色遮罩，避免整页发暗
     $scrim = $theme === 'bshark' ? 'rgba(250,251,250,.92)' : 'rgba(13,13,13,.72)';
-    return "background-image:linear-gradient({$scrim},{$scrim}),url(\"{$url}\");"
+    // url() 内部用单引号：该 CSS 会被放进 style="..." 双引号属性里，双引号会截断属性
+    $url = addcslashes($url, "\\'");
+    return "background-image:linear-gradient({$scrim},{$scrim}),url('{$url}');"
          . 'background-size:cover;background-attachment:fixed;background-position:center;background-repeat:no-repeat;';
 }
 
