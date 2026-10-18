@@ -1,5 +1,5 @@
 <div align="center">
-    <img src="https://airoj.cn/file/2/AirOJ.png" />
+    <img src="https://airoj.cn/data/uploads/logo.png" />
     <h1>AirOJ</h1>
     <p>The open-source, beautiful and powerful online Judge system.</p>
 </div>
