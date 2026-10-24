@@ -43,19 +43,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $mid = Database::insert("INSERT INTO messages (from_user,to_user,subject,content) VALUES (?,?,?,?)",
                 [$uid, $to, $subject, $content]);
 
+            $recipient = Database::fetchOne(
+                "SELECT user_id,nick,email,email_verified FROM users WHERE user_id=?",
+                [$to]
+            );
+            $sender = Database::fetchOne("SELECT user_id,nick FROM users WHERE user_id=?", [$uid]);
+            $messageData = ['id' => $mid, 'subject' => $subject, 'content' => $content];
+            $messageCtx = ['message' => $messageData, 'sender' => $sender, 'recipient' => $recipient];
+            plugin_do('Hook:Message/User.Send', $messageCtx);
+            plugin_do('Hook:Message/User.Recv', $messageCtx);
+
+            // 邮件抄送 Hook：插件可设置 handled=true 接管，或自行调用发送 API
+            $copyCtx = $messageCtx + ['handled' => false];
+            plugin_do('Hook:Message/Sys.EmailCopy', $copyCtx);
+
             // 站内信自动抄送到收件人邮箱（失败不影响站内信本身）
-            if (message_email_notify_enabled()) {
-                $recipient = Database::fetchOne(
-                    "SELECT user_id,nick,email,email_verified FROM users WHERE user_id=?",
-                    [$to]
-                );
-                $sender = Database::fetchOne("SELECT user_id,nick FROM users WHERE user_id=?", [$uid]);
+            if (empty($copyCtx['handled']) && empty($copyCtx['_cancelled']) && message_email_notify_enabled()) {
                 if ($recipient && $sender) {
-                    [$sent, $mailErr] = send_message_email($recipient, $sender, [
-                        'id' => $mid,
-                        'subject' => $subject,
-                        'content' => $content,
-                    ]);
+                    [$sent, $mailErr] = send_message_email($recipient, $sender, $messageData);
                     if (!$sent && $mailErr !== '') {
                         error_log('[AirOJ mail] message notify failed: ' . $mailErr);
                     }
@@ -108,6 +113,7 @@ if ($id) {
     if ($isRecipient && !(int)$m['is_read']) {
         Database::exec("UPDATE messages SET is_read=1 WHERE id=?", [$id]);
         $view['is_read'] = 1;
+        plugin_do('Hook:Message/User.Read', ['message' => $view, 'reader' => $user]);
     }
 }
 $bubble_style = $view ? collectible_type_css($view['from_user'], 'bubble') : '';

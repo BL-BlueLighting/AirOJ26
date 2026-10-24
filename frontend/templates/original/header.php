@@ -69,3 +69,4 @@ if ($is_mdui_theme) {
 </header>
 
 <main class="container">
+<?php plugin_view_line('content-top'); ?>

@@ -29,6 +29,7 @@
 <body class="theme-<?= $auth_theme ?><?= in_array($auth_theme, ['mdui3', 'mdui_fake'], true) ? ' mdui-theme-dark' : '' ?>">
 <div class="auth-wrap">
 <div class="auth-box">
+<?php plugin_view_head(); ?>
 <div class="auth-logo">
     <a href="/">
     <?php if ($site_logo): ?>
@@ -111,6 +112,7 @@
 
     <?php else: ?>
     <h1 style="text-align:center;font-size:20px;margin-bottom:24px">登录</h1>
+    <?= plugin_render('Hook:Login/Page.Choice', ['page' => 'login']) ?>
     <?php if ($err): ?><div class="alert alert-error"><?= htmlspecialchars($err) ?></div><?php endif; ?>
     <?php if (!empty($email_unverified)): ?>
     <p style="text-align:center;font-size:13px;margin:-4px 0 14px">
@@ -133,6 +135,7 @@
     <?php endif; ?>
 </div>
 
+<?php plugin_view_tail(); ?>
 </div>
 </div>
 </body>

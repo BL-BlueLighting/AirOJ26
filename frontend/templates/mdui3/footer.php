@@ -1,3 +1,4 @@
+        <?php plugin_view_line('content-bottom'); ?>
         </div><!-- /.mdui-container -->
 
         <footer class="mdui-footer">

@@ -30,6 +30,7 @@ require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/functions.php';
 require_once __DIR__ . '/mailer.php';
 require_once __DIR__ . '/render.php';
+require_once __DIR__ . '/plugin/bootstrap.php';
 
 // 每次请求从数据库刷新登录用户资料，避免 session 中保留旧的头像 / 背景 / 签名等
 if ($user) {
@@ -100,3 +101,22 @@ try {
         $footer_pd->setSafeMode(true);
     }
 } catch (Exception $e) {}
+
+// 插件系统：加载已启用插件，并触发核心 / Model 开头钩子
+try {
+    $pluginManager = plugin_manager();
+    $pluginManager->loadEnabled();
+    $pluginCtx = ['page' => $page, 'user' => $user];
+    plugin_do('Hook:Core/Controller.Tail', $pluginCtx);
+    plugin_do('Hook:Page/Model.Head', $pluginCtx);
+    register_shutdown_function(static function () use ($page): void {
+        try {
+            $ctx = ['page' => $page];
+            plugin_do('Hook:Page/Controller.Tail', $ctx);
+        } catch (\Throwable $e) {
+            error_log('[AirOJ plugin] controller tail failed: ' . $e->getMessage());
+        }
+    });
+} catch (\Throwable $e) {
+    error_log('[AirOJ plugin] init failed: ' . $e->getMessage());
+}

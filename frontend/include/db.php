@@ -116,6 +116,7 @@ class Database
                 'email_verify_sent_at'=> ['INTEGER NOT NULL DEFAULT 0', 'BIGINT NOT NULL DEFAULT 0'],
                 'password_reset_token'=> ["TEXT NOT NULL DEFAULT ''", "VARCHAR(64) NOT NULL DEFAULT ''"],
                 'password_reset_expires'=> ['INTEGER NOT NULL DEFAULT 0', 'BIGINT NOT NULL DEFAULT 0'],
+                'theme_locked'        => ['INTEGER NOT NULL DEFAULT 0', 'TINYINT NOT NULL DEFAULT 0'],
             ],
             'problem' => [
                 'tags'     => ['TEXT', 'LONGTEXT'],
@@ -242,6 +243,7 @@ class Database
                     email_verify_sent_at INTEGER NOT NULL DEFAULT 0,
                     password_reset_token TEXT NOT NULL DEFAULT '',
                     password_reset_expires INTEGER NOT NULL DEFAULT 0,
+                    theme_locked    INT  NOT NULL DEFAULT 0,
                     nick            TEXT NOT NULL DEFAULT '',
                     school          TEXT NOT NULL DEFAULT '',
                     solved          INT  NOT NULL DEFAULT 0,
@@ -319,6 +321,33 @@ class Database
                 CREATE TABLE IF NOT EXISTS system_config (
                     key_name TEXT PRIMARY KEY,
                     value    TEXT NOT NULL DEFAULT ''
+                )
+            ");
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS plugins (
+                    slug        TEXT PRIMARY KEY,
+                    name        TEXT NOT NULL DEFAULT '',
+                    author      TEXT NOT NULL DEFAULT '',
+                    version     TEXT NOT NULL DEFAULT '',
+                    description TEXT,
+                    icon        TEXT,
+                    enabled     INTEGER NOT NULL DEFAULT 0,
+                    updated_at  TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+                )
+            ");
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS plugin_permissions (
+                    slug        TEXT NOT NULL,
+                    permission  TEXT NOT NULL,
+                    enabled     INTEGER NOT NULL DEFAULT 1,
+                    PRIMARY KEY (slug, permission)
+                )
+            ");
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS plugin_aliases (
+                    name        TEXT PRIMARY KEY,
+                    description TEXT,
+                    created_at  TEXT NOT NULL DEFAULT (datetime('now','localtime'))
                 )
             ");
             $pdo->exec("
@@ -525,6 +554,7 @@ class Database
                 email_verify_sent_at BIGINT NOT NULL DEFAULT 0,
                 password_reset_token VARCHAR(64) NOT NULL DEFAULT '',
                 password_reset_expires BIGINT NOT NULL DEFAULT 0,
+                theme_locked    TINYINT NOT NULL DEFAULT 0,
                 nick            VARCHAR(200) NOT NULL DEFAULT '',
                 school          VARCHAR(200) NOT NULL DEFAULT '',
                 solved          INT UNSIGNED NOT NULL DEFAULT 0,
@@ -602,6 +632,33 @@ class Database
             CREATE TABLE IF NOT EXISTS system_config (
                 key_name VARCHAR(100) PRIMARY KEY,
                 value    TEXT
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS plugins (
+                slug        VARCHAR(100) NOT NULL PRIMARY KEY,
+                name        VARCHAR(200) NOT NULL DEFAULT '',
+                author      VARCHAR(200) NOT NULL DEFAULT '',
+                version     VARCHAR(50) NOT NULL DEFAULT '',
+                description TEXT,
+                icon        VARCHAR(500) NULL DEFAULT NULL,
+                enabled     TINYINT NOT NULL DEFAULT 0,
+                updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS plugin_permissions (
+                slug        VARCHAR(100) NOT NULL,
+                permission  VARCHAR(200) NOT NULL,
+                enabled     TINYINT NOT NULL DEFAULT 1,
+                PRIMARY KEY (slug, permission)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS plugin_aliases (
+                name        VARCHAR(64) NOT NULL PRIMARY KEY,
+                description TEXT,
+                created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         ");
         $pdo->exec("

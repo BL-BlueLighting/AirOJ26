@@ -70,6 +70,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
 
+            $pluginRegCtx = [
+                'user_id' => $uid,
+                'email' => $email,
+                'nick' => $nick ?: $uid,
+                'verify_required' => $verify_required,
+            ];
+            plugin_do('Hook:Register/User.Submit', $pluginRegCtx);
+
             if ($verify_required) {
                 $row = Database::fetchOne("SELECT * FROM users WHERE user_id=?", [$uid]);
                 [$sent, $mailErr] = $row ? send_verification_email($row, $rawToken) : [false, '用户记录读取失败'];

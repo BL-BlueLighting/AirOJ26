@@ -67,6 +67,15 @@ function submitJudge(string $token, string $judgeType, string $source, string $l
     $sid = Database::insert("INSERT INTO submissions (problem_id, judge_type, judge_lang, code, status, user_id, contest_id) VALUES (?,?,?,?,?,?,?)",
         [$pid, $judgeType, $lang, $source, 'judging', $uid, $contestId]);
 
+    if (function_exists('plugin_do')) {
+        $judgeCtx = [
+            'sid' => $sid, 'problem_id' => $pid, 'user_id' => $uid,
+            'lang' => $lang, 'source' => $source, 'contest_id' => $contestId,
+            'judge_type' => $judgeType,
+        ];
+        plugin_do('Hook:Judge/User.Submit', $judgeCtx);
+    }
+
     // 调 JudgeServer 同步评测
     $payload = [
         'language_config' => $langCfg,
@@ -103,12 +112,24 @@ function submitJudge(string $token, string $judgeType, string $source, string $l
         ];
     }
 
+    if (function_exists('plugin_do')) {
+        $waitCtx = ['sid' => $sid, 'problem_id' => $pid, 'payload' => $payload];
+        plugin_do('Hook:Judge/User.Wait', $waitCtx);
+        if (isset($waitCtx['payload']) && is_array($waitCtx['payload'])) $payload = $waitCtx['payload'];
+    }
+
     $resp = judge_server_api('judge', $payload);
 
     if (isset($resp['err']) && $resp['err']) {
         $err_msg = $resp['err'];
         if (!empty($resp['data']) && is_string($resp['data'])) $err_msg .= ': ' . $resp['data'];
         Database::exec("UPDATE submissions SET status='failed', result_json=? WHERE id=?", [$err_msg, $sid]);
+        if (function_exists('plugin_do')) {
+            plugin_do('Hook:Judge/User.Over', [
+                'sid' => $sid, 'problem_id' => $pid, 'user_id' => $uid,
+                'error' => $resp['err'], 'results' => [],
+            ]);
+        }
         return ['error' => $resp['err'], 'judge_commitid' => $sid];
     }
 
@@ -129,6 +150,14 @@ function submitJudge(string $token, string $judgeType, string $source, string $l
         "UPDATE submissions SET status='done', score=?, total_cases=?, passed_cases=?, result_json=? WHERE id=?",
         [$score, $total, $passed, json_encode($case_results, JSON_UNESCAPED_UNICODE), $sid]
     );
+
+    if (function_exists('plugin_do')) {
+        plugin_do('Hook:Judge/User.Over', [
+            'sid' => $sid, 'problem_id' => $pid, 'user_id' => $uid,
+            'score' => $score, 'passed' => $passed, 'total' => $total,
+            'results' => $case_results, 'error' => null,
+        ]);
+    }
 
     // 更新用户提交统计
     Database::exec("UPDATE users SET submit_count = submit_count + 1 WHERE user_id=?", [$uid]);
@@ -1114,6 +1143,14 @@ function current_theme(?array $user): string
 function set_theme(string $theme, ?array $user): bool
 {
     if (!valid_theme($theme)) return false;
+    if ($user) {
+        try {
+            $lock = Database::fetchOne("SELECT theme_locked FROM users WHERE user_id=?", [$user['user_id']]);
+            if ((int)($lock['theme_locked'] ?? 0) === 1) return false;
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
     setcookie('airoj_theme', $theme, time() + 86400 * 365, '/');
     $_COOKIE['airoj_theme'] = $theme;
     if ($user) {

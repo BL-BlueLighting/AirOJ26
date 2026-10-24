@@ -16,6 +16,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             "INSERT INTO bbs_topic (problem_id, user_id, title, content, reply_count) VALUES (?,?,?,?,0)",
             [$pid, $_SESSION['airoj_user']['user_id'], $title_t, $content]
         );
+        plugin_do('Hook:Discuss/Topic.Send', [
+            'topic_id' => $tid, 'problem_id' => $pid,
+            'user_id' => $_SESSION['airoj_user']['user_id'],
+            'title' => $title_t, 'content' => $content,
+        ]);
         header('Location: topic.php?id=' . $tid);
         exit;
     }

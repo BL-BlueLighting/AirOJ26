@@ -72,6 +72,13 @@ $admin_groups = [
             'news_scroll' => ['/admin/index.php?panel=news_scroll', '滚动公告'],
         ],
     ],
+    'plugin' => [
+        'title' => '插件', 'desc' => '扩展、启用与权限开关', 'icon' => 'fa-puzzle-piece',
+        'landing' => '/admin/plugins.php',
+        'items' => [
+            'plugin_list' => ['/admin/plugins.php', '插件管理'],
+        ],
+    ],
     'system' => [
         'title' => '系统', 'desc' => '运行状态与评测队列', 'icon' => 'fa-bolt',
         'landing' => '/admin/index.php?panel=system_info',

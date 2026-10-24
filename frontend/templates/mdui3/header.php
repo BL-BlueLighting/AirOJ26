@@ -101,3 +101,4 @@ $body_class = trim(($body_class ?? '') . ' theme-mdui3 mdui-theme-dark');
 
     <mdui-layout-main>
         <div class="mdui-container">
+        <?php plugin_view_line('content-top'); ?>

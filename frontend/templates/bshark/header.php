@@ -70,3 +70,4 @@ $body_class = trim(($body_class ?? '') . ' theme-bshark');
 <div class="ui container bsharkMain">
     <div class="ui stackable grid">
         <div class="sixteen wide column">
+        <?php plugin_view_line('content-top'); ?>

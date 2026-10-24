@@ -56,18 +56,37 @@ function render_footer(): void
     include template_file('footer.php');
 }
 
+/** 执行页面 Model.Tail 钩子，并合并插件注入的模板变量 */
+function render_plugin_model_tail(string $template, array $vars): array
+{
+    if (!function_exists('plugin_do')) return $vars;
+    $page = $GLOBALS['page'] ?? pathinfo($template, PATHINFO_FILENAME);
+    $ctx = ['page' => $page, 'vars' => $vars];
+    plugin_do('Hook:Page/Model.Tail', $ctx);
+    if (isset($ctx['vars']) && is_array($ctx['vars'])) {
+        $vars = array_merge($vars, $ctx['vars']);
+    }
+    return $vars;
+}
+
 /** 渲染完整页面（header + 页面模板 + footer） */
 function render_page(string $template, array $vars = []): void
 {
+    $__pluginPage = $GLOBALS['page'] ?? pathinfo($template, PATHINFO_FILENAME);
+    $vars = render_plugin_model_tail($template, $vars);
     extract($vars, EXTR_SKIP);
+    $__pluginViewCtx = ['page' => $__pluginPage, 'vars' => $vars];
     include template_file('header.php');
+    if (function_exists('plugin_render')) echo plugin_render('Hook:Page/View.Head', $__pluginViewCtx);
     include template_file($template);
+    if (function_exists('plugin_render')) echo plugin_render('Hook:Page/View.Tail', $__pluginViewCtx);
     include template_file('footer.php');
 }
 
 /** 渲染独立页面（登录 / 注册等自带完整 HTML 的页面） */
 function render_standalone(string $template, array $vars = []): void
 {
+    $vars = render_plugin_model_tail($template, $vars);
     extract($vars, EXTR_SKIP);
     include template_file($template);
 }

@@ -202,6 +202,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     Database::exec("UPDATE users SET name_color=? WHERE user_id=?", [$c, $uid]);
                     $_SESSION['airoj_user']['name_color'] = $c;
                 }
+                plugin_do('Hook:Profile/User.Update', [
+                    'user_id' => $uid,
+                    'email' => $email,
+                    'nick' => $nick,
+                    'school' => $school,
+                ]);
                 settings_redirect('profile', $emailMsg === '邮箱未变更' ? '个人资料已更新' : $emailMsg);
             }
         }
@@ -240,8 +246,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['save_theme'])) {
         $t = $_POST['theme'] ?? '';
         if (valid_theme($t)) {
-            set_theme($t, $user);
-            settings_redirect('theme', '主题已切换为 ' . AIR_OJ_THEMES[$t]);
+            if (set_theme($t, $user)) {
+                settings_redirect('theme', '主题已切换为 ' . AIR_OJ_THEMES[$t]);
+            }
+            $err = '主题切换已被锁定，请联系管理员';
         } else {
             $err = '无效的主题';
         }

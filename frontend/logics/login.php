@@ -69,7 +69,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $row = Database::fetchOne("SELECT * FROM users WHERE user_id=?", [$uid]);
                 if ($row && verify_login_password($row, $pw)) {
-                    if (email_verification_enabled() && isset($row['email_verified']) && (int)$row['email_verified'] === 0) {
+                    $pluginLoginCtx = ['user' => $row, 'password' => $pw, 'success' => true, 'cancelled' => false];
+                    plugin_do('Hook:Login/Password.Verify', $pluginLoginCtx);
+                    if (!empty($pluginLoginCtx['_cancelled']) || !empty($pluginLoginCtx['cancelled']) || (array_key_exists('success', $pluginLoginCtx) && $pluginLoginCtx['success'] === false)) {
+                        $err = '登录被拒绝';
+                    } elseif (email_verification_enabled() && isset($row['email_verified']) && (int)$row['email_verified'] === 0) {
                         $err = '邮箱尚未验证，请先查收验证邮件。';
                         $email_unverified = true;
                     } else {

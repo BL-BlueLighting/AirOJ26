@@ -10,6 +10,7 @@
 </head>
 <body class="theme-<?= $auth_theme ?><?= in_array($auth_theme, ['mdui3', 'mdui_fake'], true) ? ' mdui-theme-dark' : '' ?>" style="display:flex;justify-content:center;align-items:center;min-height:100vh;background:var(--bg-primary)">
 <div style="width:100%;max-width:400px;padding:20px">
+<?php plugin_view_head(); ?>
 <div class="auth-logo" style="text-align:center;margin-bottom:24px">
     <a href="/" style="font-size:28px;font-weight:800;color:var(--text-primary);text-decoration:none;display:inline-block">
     <?php if ($site_logo): ?>
@@ -35,6 +36,7 @@
     </form>
     <div style="text-align:center;margin-top:16px;font-size:13px"><a href="/login.php">已有账号？登录</a></div>
 </div>
+<?php plugin_view_tail(); ?>
 </div>
 </body>
 </html>
