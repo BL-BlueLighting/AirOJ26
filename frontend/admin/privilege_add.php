@@ -2,6 +2,7 @@
 $title = 'privilege_add';
 require_once __DIR__ . '/../include/config.php';
 require_once __DIR__ . '/../include/db.php';
+require_once __DIR__ . '/../include/mailer.php';
 if (session_status() === PHP_SESSION_NONE) @session_start();
 $is_admin = Database::fetchOne("SELECT * FROM privilege WHERE user_id=? AND right_str='administrator'", [$_SESSION['airoj_user']['user_id'] ?? '']);
 if (!isset($_SESSION['airoj_user']) || !$is_admin) { header('Location: ../login.php'); exit; }
@@ -13,10 +14,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $uid = trim($_POST['user_id'] ?? '');
     $right = trim($_POST['right_str'] ?? 'administrator');
     if ($uid && $right) {
-        $user = Database::fetchOne("SELECT * FROM users WHERE user_id=?", [$uid]);
-        if (!$user) $err = '用户不存在';
+        $targetUser = Database::fetchOne("SELECT * FROM users WHERE user_id=?", [$uid]);
+        if (!$targetUser) $err = '用户不存在';
         else {
-            Database::insert("INSERT OR IGNORE INTO privilege (user_id, right_str) VALUES (?, ?)", [$uid, $right]);
+            $hadPriv = Database::fetchOne("SELECT 1 AS x FROM privilege WHERE user_id=? AND right_str=?", [$uid, $right]);
+            if (!$hadPriv) {
+                Database::insert("INSERT INTO privilege (user_id, right_str) VALUES (?, ?)", [$uid, $right]);
+                [$sent, $mailErr] = send_admin_action_email($targetUser, '权限变更', ['已授予权限：' . $right]);
+                if ($mailErr !== '') error_log('[AirOJ mail] admin action notify failed: ' . $mailErr);
+            }
             $ok = "权限已授予 $uid -> $right";
         }
     }

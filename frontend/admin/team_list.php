@@ -3,6 +3,7 @@ $title = '团队管理';
 require_once __DIR__ . '/../include/config.php';
 require_once __DIR__ . '/../include/db.php';
 require_once __DIR__ . '/../include/functions.php';
+require_once __DIR__ . '/../include/mailer.php';
 if (session_status() === PHP_SESSION_NONE) @session_start();
 $is_admin = Database::fetchOne("SELECT * FROM privilege WHERE user_id=? AND right_str='administrator'", [$_SESSION['airoj_user']['user_id'] ?? '']);
 if (!isset($_SESSION['airoj_user']) || !$is_admin) { header('Location: ../login.php'); exit; }
@@ -12,6 +13,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $tid = intval($_POST['team_id'] ?? 0);
     $act = $_POST['act'] ?? '';
     if ($tid) {
+        $team = Database::fetchOne("SELECT * FROM teams WHERE team_id=?", [$tid]);
+        $teamOwner = $team ? Database::fetchOne("SELECT * FROM users WHERE user_id=?", [$team['owner']]) : null;
+        $teamChanges = ['团队：' . ($team['name'] ?? ('#' . $tid))];
         if ($act === 'approve') {
             // 直接认证时若没有填写认证名称，则以团队名称作为认证名称
             $t = Database::fetchOne("SELECT name, verify_name FROM teams WHERE team_id=?", [$tid]);
@@ -19,13 +23,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 Database::exec("UPDATE teams SET verify_name=? WHERE team_id=?", [$t['name'], $tid]);
             }
             Database::exec("UPDATE teams SET verified=1, verify_status='approved' WHERE team_id=?", [$tid]);
+            $teamChanges[] = '认证状态：已通过';
             $ok = '已通过认证';
         } elseif ($act === 'reject') {
             Database::exec("UPDATE teams SET verify_status='rejected' WHERE team_id=?", [$tid]);
+            $teamChanges[] = '认证状态：已驳回';
             $ok = '已驳回认证申请';
         } elseif ($act === 'unverify') {
             Database::exec("UPDATE teams SET verified=0, verify_status='none' WHERE team_id=?", [$tid]);
+            $teamChanges[] = '认证状态：已取消';
             $ok = '已取消认证';
+        }
+        if ($teamOwner && in_array($act, ['approve', 'reject', 'unverify'], true)) {
+            [$sent, $mailErr] = send_admin_action_email($teamOwner, '团队认证状态变更', $teamChanges);
+            if ($mailErr !== '') error_log('[AirOJ mail] admin action notify failed: ' . $mailErr);
         }
     }
 }

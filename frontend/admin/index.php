@@ -2,6 +2,8 @@
 $title = '管理后台';
 require_once __DIR__ . '/../include/config.php';
 require_once __DIR__ . '/../include/db.php';
+require_once __DIR__ . '/../include/functions.php';
+require_once __DIR__ . '/../include/mailer.php';
 if (session_status() === PHP_SESSION_NONE) @session_start();
 $is_admin = Database::fetchOne("SELECT * FROM privilege WHERE user_id=? AND right_str='administrator'", [$_SESSION['airoj_user']['user_id'] ?? '']);
 if (!isset($_SESSION['airoj_user']) || !$is_admin) { header('Location: /login.php'); exit; }
@@ -426,25 +428,67 @@ function import_hustoj(string $dir, string $name): void {
         $pw = $_POST['password'] ?? '';
         $role = $_POST['role'] ?? '';
         $reason = $_POST['reason'] ?? '';
-        if ($nick) Database::exec("UPDATE users SET nick=? WHERE user_id=?", [$nick, $target]);
-        if (isset($_POST['name_color'])) {
-            $nc = (string)$_POST['name_color'];
-            if (valid_name_color($nc)) Database::exec("UPDATE users SET name_color=? WHERE user_id=?", [$nc, $target]);
-        }
-        if ($email) Database::exec("UPDATE users SET email=? WHERE user_id=?", [$email, $target]);
-        if ($pw) Database::exec("UPDATE users SET password=? WHERE user_id=?", [password_hash($pw, PASSWORD_DEFAULT), $target]);
-        if ($role === 'admin') {
-            Database::insert("INSERT OR IGNORE INTO privilege (user_id,right_str) VALUES (?,?)", [$target, 'administrator']);
-            Database::insert("INSERT INTO privilege_log (user_id,admin_id,action,target,reason) VALUES (?,?,?,?,?)", [$target, $user['user_id'], 'grant', 'administrator', $reason ?: '管理员操作']);
-        } elseif ($role === 'mod') {
-            Database::insert("INSERT OR IGNORE INTO privilege (user_id,right_str) VALUES (?,?)", [$target, 'moderator']);
-            Database::insert("INSERT INTO privilege_log (user_id,admin_id,action,target,reason) VALUES (?,?,?,?,?)", [$target, $user['user_id'], 'grant', 'moderator', $reason ?: '管理员操作']);
-        } elseif ($role === 'cheat') {
-            Database::insert("INSERT OR IGNORE INTO privilege (user_id,right_str) VALUES (?,?)", [$target, 'cheater']);
-            Database::insert("INSERT INTO privilege_log (user_id,admin_id,action,target,reason) VALUES (?,?,?,?,?)", [$target, $user['user_id'], 'mark', 'cheater', $reason ?: '管理员操作']);
-        } elseif ($role === 'remove_cheat') {
-            Database::exec("DELETE FROM privilege WHERE user_id=? AND right_str='cheater'", [$target]);
-            Database::insert("INSERT INTO privilege_log (user_id,admin_id,action,target,reason) VALUES (?,?,?,?,?)", [$target, $user['user_id'], 'unmark', 'cheater', $reason ?: '管理员操作']);
+        $before = Database::fetchOne("SELECT * FROM users WHERE user_id=?", [$target]);
+        $changes = [];
+        $oldEmail = trim((string)($before['email'] ?? ''));
+
+        if ($before) {
+            if ($nick && (string)$before['nick'] !== (string)$nick) {
+                Database::exec("UPDATE users SET nick=? WHERE user_id=?", [$nick, $target]);
+                $changes[] = '昵称已更新';
+            }
+            if (isset($_POST['name_color'])) {
+                $nc = (string)$_POST['name_color'];
+                if (valid_name_color($nc)) {
+                    if ((string)($before['name_color'] ?? '') !== $nc) {
+                        Database::exec("UPDATE users SET name_color=? WHERE user_id=?", [$nc, $target]);
+                        $changes[] = '名字颜色已更新';
+                    }
+                }
+            }
+            if ($email && strcasecmp($email, $oldEmail) !== 0) {
+                Database::exec("UPDATE users SET email=? WHERE user_id=?", [$email, $target]);
+                $changes[] = '邮箱已更新：' . $oldEmail . ' → ' . $email;
+            }
+            if ($pw) {
+                Database::exec("UPDATE users SET password=? WHERE user_id=?", [password_hash($pw, PASSWORD_DEFAULT), $target]);
+                $changes[] = '登录密码已被重置';
+            }
+
+            $hasAdmin = Database::fetchOne("SELECT 1 AS x FROM privilege WHERE user_id=? AND right_str='administrator'", [$target]);
+            $hasMod = Database::fetchOne("SELECT 1 AS x FROM privilege WHERE user_id=? AND right_str='moderator'", [$target]);
+            $hasCheat = Database::fetchOne("SELECT 1 AS x FROM privilege WHERE user_id=? AND right_str='cheater'", [$target]);
+            if ($role === 'admin' && !$hasAdmin) {
+                Database::insert("INSERT INTO privilege (user_id,right_str) VALUES (?,?)", [$target, 'administrator']);
+                Database::insert("INSERT INTO privilege_log (user_id,admin_id,action,target,reason) VALUES (?,?,?,?,?)", [$target, $user['user_id'], 'grant', 'administrator', $reason ?: '管理员操作']);
+                $changes[] = '已授予管理员角色';
+            } elseif ($role === 'mod' && !$hasMod) {
+                Database::insert("INSERT INTO privilege (user_id,right_str) VALUES (?,?)", [$target, 'moderator']);
+                Database::insert("INSERT INTO privilege_log (user_id,admin_id,action,target,reason) VALUES (?,?,?,?,?)", [$target, $user['user_id'], 'grant', 'moderator', $reason ?: '管理员操作']);
+                $changes[] = '已授予版主角色';
+            } elseif ($role === 'cheat' && !$hasCheat) {
+                Database::insert("INSERT INTO privilege (user_id,right_str) VALUES (?,?)", [$target, 'cheater']);
+                Database::insert("INSERT INTO privilege_log (user_id,admin_id,action,target,reason) VALUES (?,?,?,?,?)", [$target, $user['user_id'], 'mark', 'cheater', $reason ?: '管理员操作']);
+                $changes[] = '已被标记为作弊';
+            } elseif ($role === 'remove_cheat' && $hasCheat) {
+                Database::exec("DELETE FROM privilege WHERE user_id=? AND right_str='cheater'", [$target]);
+                Database::insert("INSERT INTO privilege_log (user_id,admin_id,action,target,reason) VALUES (?,?,?,?,?)", [$target, $user['user_id'], 'unmark', 'cheater', $reason ?: '管理员操作']);
+                $changes[] = '已取消作弊标记';
+            }
+
+            if ($changes) {
+                if ($reason !== '' && in_array($role, ['admin', 'mod', 'cheat', 'remove_cheat'], true)) {
+                    $changes[] = '原因：' . $reason;
+                }
+                $after = Database::fetchOne("SELECT * FROM users WHERE user_id=?", [$target]);
+                [$sent, $mailErr] = send_admin_action_email(
+                    $after ?: $before,
+                    '账号资料更新',
+                    $changes,
+                    ($oldEmail !== '' && strcasecmp($oldEmail, (string)($after['email'] ?? '')) !== 0) ? [$oldEmail] : []
+                );
+                if ($mailErr !== '') error_log('[AirOJ mail] admin action notify failed: ' . $mailErr);
+            }
         }
         $ok = "用户 {$target} 已更新";
     }
@@ -497,6 +541,15 @@ function import_hustoj(string $dir, string $name): void {
             if ($uid && !Database::fetchOne("SELECT user_id FROM users WHERE user_id=?", [$uid])) {
                 Database::insert("INSERT INTO users (user_id,password,email,nick) VALUES (?,?,?,?)", [$uid, password_hash($pw, PASSWORD_DEFAULT), $email, $nick]);
                 $added++;
+                $newUser = Database::fetchOne("SELECT * FROM users WHERE user_id=?", [$uid]);
+                if ($newUser) {
+                    [$sent, $mailErr] = send_admin_action_email(
+                        $newUser,
+                        '账号已创建',
+                        ['用户名：' . $uid, '请使用管理员提供的初始密码登录，并及时修改密码']
+                    );
+                    if ($mailErr !== '') error_log('[AirOJ mail] admin action notify failed: ' . $mailErr);
+                }
             }
         }
         $ok = "成功添加 {$added} 个用户";
@@ -526,8 +579,16 @@ function import_hustoj(string $dir, string $name): void {
 // ===== Panel: Add Privilege =====
 } elseif ($panel === 'privilege_add') {
     if (isset($_GET['del'])) {
-        Database::exec("DELETE FROM privilege WHERE user_id=? AND right_str=?", [$_GET['del'], $_GET['right'] ?? '']);
-        Database::insert("INSERT INTO privilege_log (user_id,admin_id,action,target,reason) VALUES (?,?,?,?,?)", [$_GET['del'], $user['user_id'], 'revoke', $_GET['right'] ?? '', '管理员操作']);
+        $delUid = (string)$_GET['del'];
+        $delRight = (string)($_GET['right'] ?? '');
+        $delUser = Database::fetchOne("SELECT * FROM users WHERE user_id=?", [$delUid]);
+        $hadPriv = Database::fetchOne("SELECT 1 AS x FROM privilege WHERE user_id=? AND right_str=?", [$delUid, $delRight]);
+        Database::exec("DELETE FROM privilege WHERE user_id=? AND right_str=?", [$delUid, $delRight]);
+        Database::insert("INSERT INTO privilege_log (user_id,admin_id,action,target,reason) VALUES (?,?,?,?,?)", [$delUid, $user['user_id'], 'revoke', $delRight, '管理员操作']);
+        if ($delUser && $hadPriv) {
+            [$sent, $mailErr] = send_admin_action_email($delUser, '权限变更', ['已移除权限：' . $delRight]);
+            if ($mailErr !== '') error_log('[AirOJ mail] admin action notify failed: ' . $mailErr);
+        }
         $ok = '权限已移除';
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -535,10 +596,18 @@ function import_hustoj(string $dir, string $name): void {
         $right = $_POST['right_str'] ?? 'administrator';
         $reason = $_POST['reason'] ?? '';
         if ($uid && $right) {
-            if (!Database::fetchOne("SELECT user_id FROM users WHERE user_id=?", [$uid])) $err = '用户不存在';
+            $targetUser = Database::fetchOne("SELECT * FROM users WHERE user_id=?", [$uid]);
+            if (!$targetUser) $err = '用户不存在';
             else {
-                Database::insert("INSERT OR IGNORE INTO privilege (user_id,right_str) VALUES (?,?)", [$uid, $right]);
-                Database::insert("INSERT INTO privilege_log (user_id,admin_id,action,target,reason) VALUES (?,?,?,?,?)", [$uid, $user['user_id'], 'grant', $right, $reason ?: '管理员操作']);
+                $hadPriv = Database::fetchOne("SELECT 1 AS x FROM privilege WHERE user_id=? AND right_str=?", [$uid, $right]);
+                if (!$hadPriv) {
+                    Database::insert("INSERT INTO privilege (user_id,right_str) VALUES (?,?)", [$uid, $right]);
+                    Database::insert("INSERT INTO privilege_log (user_id,admin_id,action,target,reason) VALUES (?,?,?,?,?)", [$uid, $user['user_id'], 'grant', $right, $reason ?: '管理员操作']);
+                    $changes = ['已授予权限：' . $right];
+                    if ($reason !== '') $changes[] = '原因：' . $reason;
+                    [$sent, $mailErr] = send_admin_action_email($targetUser, '权限变更', $changes);
+                    if ($mailErr !== '') error_log('[AirOJ mail] admin action notify failed: ' . $mailErr);
+                }
                 $ok = "权限已授予 {$uid} -> {$right}";
             }
         }

@@ -3,6 +3,7 @@ $title = '收藏品管理';
 require_once __DIR__ . '/../include/config.php';
 require_once __DIR__ . '/../include/db.php';
 require_once __DIR__ . '/../include/functions.php';
+require_once __DIR__ . '/../include/mailer.php';
 if (session_status() === PHP_SESSION_NONE) @session_start();
 $is_admin = Database::fetchOne("SELECT * FROM privilege WHERE user_id=? AND right_str='administrator'", [$_SESSION['airoj_user']['user_id'] ?? '']);
 if (!isset($_SESSION['airoj_user']) || !$is_admin) { header('Location: ../login.php'); exit; }
@@ -42,13 +43,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($act === 'grant') {
         $uid = trim($_POST['user_id'] ?? '');
         $cid = intval($_POST['collectible_id'] ?? 0);
-        if (!Database::fetchOne("SELECT 1 AS x FROM users WHERE user_id=?", [$uid])) $err = '用户不存在';
-        elseif (!Database::fetchOne("SELECT 1 AS x FROM collectibles WHERE collectible_id=?", [$cid])) $err = '收藏品不存在';
+        $targetUser = Database::fetchOne("SELECT * FROM users WHERE user_id=?", [$uid]);
+        $collectible = Database::fetchOne("SELECT * FROM collectibles WHERE collectible_id=?", [$cid]);
+        if (!$targetUser) $err = '用户不存在';
+        elseif (!$collectible) $err = '收藏品不存在';
         else {
-            if (DB_DRIVER === 'mysql') {
-                Database::exec("INSERT IGNORE INTO user_collectibles (user_id,collectible_id) VALUES (?,?)", [$uid, $cid]);
-            } else {
-                Database::exec("INSERT OR IGNORE INTO user_collectibles (user_id,collectible_id) VALUES (?,?)", [$uid, $cid]);
+            $had = Database::fetchOne("SELECT 1 AS x FROM user_collectibles WHERE user_id=? AND collectible_id=?", [$uid, $cid]);
+            if (!$had) {
+                Database::exec("INSERT INTO user_collectibles (user_id,collectible_id) VALUES (?,?)", [$uid, $cid]);
+                [$sent, $mailErr] = send_admin_action_email($targetUser, '获得收藏品', [
+                    '收藏品：' . $collectible['name'] . '（' . $collectible['type'] . '）',
+                ]);
+                if ($mailErr !== '') error_log('[AirOJ mail] admin action notify failed: ' . $mailErr);
             }
             $ok = "已授予 {$uid} 收藏品";
         }
@@ -59,12 +65,22 @@ if (isset($_GET['del'])) {
     $cid = intval($_GET['del']);
     $c = Database::fetchOne("SELECT * FROM collectibles WHERE collectible_id=?", [$cid]);
     if ($c) {
+        $owners = Database::fetchAll(
+            "SELECT u.* FROM users u JOIN user_collectibles uc ON uc.user_id=u.user_id WHERE uc.collectible_id=?",
+            [$cid]
+        );
         Database::exec("DELETE FROM user_collectibles WHERE collectible_id=?", [$cid]);
         $col = $typeColumns[$c['type']] ?? '';
         if ($col !== '') {
             Database::exec("UPDATE users SET `$col`=0 WHERE `$col`=?", [$cid]);
         }
         Database::exec("DELETE FROM collectibles WHERE collectible_id=?", [$cid]);
+        foreach ($owners as $owner) {
+            [$sent, $mailErr] = send_admin_action_email($owner, '收藏品已被移除', [
+                '收藏品：' . $c['name'] . '（' . $c['type'] . '）已被管理员删除',
+            ]);
+            if ($mailErr !== '') error_log('[AirOJ mail] admin action notify failed: ' . $mailErr);
+        }
         $ok = '收藏品已删除';
     }
 }

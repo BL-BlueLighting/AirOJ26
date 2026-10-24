@@ -42,3 +42,6 @@ judge/JudgeServer/
 
 # Inputs and outputs
 inputs_outputs/*
+
+# Local promo page
+/frontend/promo.html

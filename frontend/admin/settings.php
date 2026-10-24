@@ -113,6 +113,7 @@ if (isset($_POST['save_mail_settings'])) {
     Database::setConfig('email_verification_enabled', isset($_POST['email_verification_enabled']) ? '1' : '0');
     Database::setConfig('password_reset_enabled', isset($_POST['password_reset_enabled']) ? '1' : '0');
     Database::setConfig('message_email_notify', isset($_POST['message_email_notify']) ? '1' : '0');
+    Database::setConfig('admin_action_email_notify', isset($_POST['admin_action_email_notify']) ? '1' : '0');
     Database::setConfig('smtp_host', trim((string)($_POST['smtp_host'] ?? '')));
 
     $port = (int)($_POST['smtp_port'] ?? 0);
@@ -183,6 +184,7 @@ $mail_enabled = Database::getConfig('mail_enabled') === '1';
 $email_verification_enabled = Database::getConfig('email_verification_enabled') === '1';
 $password_reset_enabled = Database::getConfig('password_reset_enabled') === '1';
 $message_email_notify = Database::getConfig('message_email_notify') !== '0';
+$admin_action_email_notify = Database::getConfig('admin_action_email_notify') !== '0';
 $smtp_cfg = mail_smtp_config();
 $smtp_host = (string)Database::getConfig('smtp_host');
 $smtp_port = (string)Database::getConfig('smtp_port');
@@ -372,9 +374,13 @@ require __DIR__ . '/_layout_top.php'; ?>
             <input type="checkbox" name="password_reset_enabled" value="1" <?= $password_reset_enabled ? 'checked' : '' ?>>
             允许用户通过邮箱找回密码
         </label>
-        <label style="display:flex;align-items:center;gap:8px;margin-bottom:14px;cursor:pointer">
+        <label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;cursor:pointer">
             <input type="checkbox" name="message_email_notify" value="1" <?= $message_email_notify ? 'checked' : '' ?>>
             收到站内信时自动抄送到收件人邮箱
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;margin-bottom:14px;cursor:pointer">
+            <input type="checkbox" name="admin_action_email_notify" value="1" <?= $admin_action_email_notify ? 'checked' : '' ?>>
+            管理员操作用户时向该用户发送邮件通知
         </label>
 
         <div class="form-group"><label>SMTP 服务器</label>

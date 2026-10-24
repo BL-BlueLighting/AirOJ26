@@ -114,6 +114,89 @@ function message_email_notify_enabled(): bool
     return mail_service_available() && mail_setting('message_email_notify', '1') === '1';
 }
 
+/** 管理员操作用户时是否发送邮件通知 */
+function admin_action_email_notify_enabled(): bool
+{
+    return mail_service_available() && mail_setting('admin_action_email_notify', '1') === '1';
+}
+
+/**
+ * 管理员对用户执行操作后发送通知邮件。
+ *
+ * @param array $target 目标用户行（user_id / nick / email）
+ * @param string $action 操作名称
+ * @param array $changes 变更说明（不要放密码、token 等敏感信息）
+ * @param array $extraEmails 额外收件地址（例如修改邮箱前的旧邮箱）
+ * @param bool $accountDeleted 账号是否已被删除
+ * @return array{0:int,1:string} [成功发送数, 错误信息]
+ */
+function send_admin_action_email(array $target, string $action, array $changes = [], array $extraEmails = [], bool $accountDeleted = false): array
+{
+    if (!admin_action_email_notify_enabled()) return [0, ''];
+    $userId = trim((string)($target['user_id'] ?? ''));
+    if ($userId === '') return [0, ''];
+
+    $nickRaw = (string)($target['nick'] ?: $userId);
+    $nick = htmlspecialchars($nickRaw, ENT_QUOTES, 'UTF-8');
+    $adminRaw = (string)(($_SESSION['airoj_user']['nick'] ?? '') ?: ($_SESSION['airoj_user']['user_id'] ?? '管理员'));
+    if ($adminRaw === '') $adminRaw = '管理员';
+    $admin = htmlspecialchars($adminRaw, ENT_QUOTES, 'UTF-8');
+    $actionRaw = trim($action) !== '' ? trim($action) : '账号操作';
+    $actionEsc = htmlspecialchars($actionRaw, ENT_QUOTES, 'UTF-8');
+    $time = date('Y-m-d H:i:s');
+
+    $rawChanges = [];
+    foreach ($changes as $change) {
+        $change = trim((string)$change);
+        if ($change !== '' && !in_array($change, $rawChanges, true)) $rawChanges[] = $change;
+    }
+    $changesHtml = '';
+    if ($rawChanges) {
+        $items = '';
+        foreach ($rawChanges as $change) $items .= '<li>' . htmlspecialchars($change, ENT_QUOTES, 'UTF-8') . '</li>';
+        $changesHtml = '<ul style="margin:10px 0 0;padding-left:20px;color:#40524a;font-size:14px;line-height:1.9">' . $items . '</ul>';
+    } else {
+        $changesHtml = '<p style="margin:10px 0 0;color:#5f7068">管理员对你的账号进行了一次操作。</p>';
+    }
+
+    $url = $accountDeleted ? '' : mail_absolute_url('/settings.php');
+    $html = mail_html_wrap(
+        $accountDeleted ? '你的账号已被删除' : '你的 AirOJ 账号有新的变动',
+        '<p>你好，' . $nick . '：</p>'
+        . '<p>管理员 <strong>' . $admin . '</strong> 于 ' . htmlspecialchars($time) . ' 对你的账号执行了以下操作：</p>'
+        . '<div style="margin:16px 0 0;padding:16px 18px;background:#f7faf8;border-left:3px solid #2bb96f;border-radius:8px">'
+        . '<p style="margin:0;font-size:14px;font-weight:700;color:#17241d">' . $actionEsc . '</p>' . $changesHtml
+        . '</div>',
+        $accountDeleted ? '' : '查看账号设置',
+        $url,
+        $accountDeleted ? '如账号删除有误，请尽快联系站点管理员。' : '如果这不是你预期的操作，请尽快联系站点管理员。'
+    );
+
+    $text = "你好，{$nickRaw}：\n\n管理员 {$adminRaw} 于 {$time} 对你的账号执行了操作：{$actionRaw}\n";
+    foreach ($rawChanges as $change) $text .= '- ' . $change . "\n";
+    if ($url !== '') $text .= "\n查看账号设置：{$url}\n";
+    $text .= "\n如果这不是你预期的操作，请尽快联系站点管理员。\n";
+
+    $emails = [];
+    $primary = trim((string)($target['email'] ?? ''));
+    if ($primary !== '') $emails[] = $primary;
+    foreach ($extraEmails as $email) {
+        $email = trim((string)$email);
+        if ($email !== '') $emails[] = $email;
+    }
+    $emails = array_values(array_unique(array_filter($emails, static fn(string $e): bool => filter_var($e, FILTER_VALIDATE_EMAIL) !== false)));
+    if (!$emails) return [0, ''];
+
+    $sent = 0;
+    $errors = [];
+    foreach ($emails as $email) {
+        [$ok, $mailErr] = send_system_mail($email, 'AirOJ 账号变动通知：' . $actionRaw, $html, $text);
+        if ($ok) $sent++;
+        elseif ($mailErr !== '') $errors[] = $mailErr;
+    }
+    return [$sent, implode('; ', $errors)];
+}
+
 /** 发送站内信副本邮件 */
 function send_message_email(array $recipient, array $sender, array $message): array
 {

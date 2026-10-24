@@ -3,6 +3,7 @@ $title = '称号审核';
 require_once __DIR__ . '/../include/config.php';
 require_once __DIR__ . '/../include/db.php';
 require_once __DIR__ . '/../include/functions.php';
+require_once __DIR__ . '/../include/mailer.php';
 if (session_status() === PHP_SESSION_NONE) @session_start();
 $is_admin = Database::fetchOne("SELECT * FROM privilege WHERE user_id=? AND right_str='administrator'", [$_SESSION['airoj_user']['user_id'] ?? '']);
 if (!isset($_SESSION['airoj_user']) || !$is_admin) { header('Location: ../login.php'); exit; }
@@ -23,10 +24,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $status = $act === 'approve' ? 'approved' : 'rejected';
             Database::exec("UPDATE title_applications SET status=?, reviewed_by=?, reviewed_at=? WHERE application_id=?",
                 [$status, $admin_id, date('Y-m-d H:i:s'), $aid]);
+            $targetUser = Database::fetchOne("SELECT * FROM users WHERE user_id=?", [$app['user_id']]);
             if ($act === 'approve') {
                 Database::exec("UPDATE users SET title=? WHERE user_id=?", [$app['title'], $app['user_id']]);
+                if ($targetUser) {
+                    [$sent, $mailErr] = send_admin_action_email($targetUser, '称号申请已通过', [
+                        '称号：' . $app['title'],
+                        '申请理由：' . ($app['reason'] ?: '—'),
+                    ]);
+                    if ($mailErr !== '') error_log('[AirOJ mail] admin action notify failed: ' . $mailErr);
+                }
                 $ok = '已通过称号申请';
             } else {
+                if ($targetUser) {
+                    [$sent, $mailErr] = send_admin_action_email($targetUser, '称号申请未通过', [
+                        '称号：' . $app['title'],
+                        '申请理由：' . ($app['reason'] ?: '—'),
+                    ]);
+                    if ($mailErr !== '') error_log('[AirOJ mail] admin action notify failed: ' . $mailErr);
+                }
                 $ok = '已驳回称号申请';
             }
         }
@@ -40,11 +56,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             Database::exec("UPDATE users SET title=? WHERE user_id=?", [$t, $uid]);
             Database::insert("INSERT INTO title_applications (user_id,title,reason,status,reviewed_by,reviewed_at) VALUES (?,?,?,'approved',?,?)",
                 [$uid, $t, '管理员直接授予', $admin_id, date('Y-m-d H:i:s')]);
+            $targetUser = Database::fetchOne("SELECT * FROM users WHERE user_id=?", [$uid]);
+            if ($targetUser) {
+                [$sent, $mailErr] = send_admin_action_email($targetUser, '称号已授予', ['称号：' . $t]);
+                if ($mailErr !== '') error_log('[AirOJ mail] admin action notify failed: ' . $mailErr);
+            }
             $ok = '称号已授予';
         }
     } elseif ($act === 'revoke') {
         $uid = trim($_POST['user_id'] ?? '');
+        $targetUser = Database::fetchOne("SELECT * FROM users WHERE user_id=?", [$uid]);
         Database::exec("UPDATE users SET title='' WHERE user_id=?", [$uid]);
+        if ($targetUser) {
+            [$sent, $mailErr] = send_admin_action_email($targetUser, '称号已被移除');
+            if ($mailErr !== '') error_log('[AirOJ mail] admin action notify failed: ' . $mailErr);
+        }
         $ok = '已移除称号';
     }
 }
