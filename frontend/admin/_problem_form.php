@@ -180,11 +180,33 @@ $pe_spj_exists = !empty($pe_spj_exists);
 
     // ── 难度行增删 ──
     var rows = document.getElementById('diff-rows');
+    var DIFF_RANGES = <?= json_encode(array_map(fn($c) => ['min' => $c['min'], 'max' => $c['max']], AIR_OJ_DIFFICULTY), JSON_UNESCAPED_UNICODE) ?>;
+
+    // 类别变化时只保留该类别允许的等级，避免提交非法组合导致难度丢失
+    function syncDiffLevels(row) {
+        var selects = row.querySelectorAll('select');
+        if (selects.length < 2) return;
+        var cat = selects[0], lvl = selects[1], r = DIFF_RANGES[cat.value];
+        if (!r) return;
+        for (var i = 0; i < lvl.options.length; i++) {
+            var v = parseInt(lvl.options[i].value, 10);
+            lvl.options[i].disabled = (v < r.min || v > r.max);
+        }
+        var cur = parseInt(lvl.value, 10);
+        if (!cur || cur < r.min || cur > r.max) lvl.value = String(r.min);
+    }
+    function bindDiffRow(row) {
+        syncDiffLevels(row);
+        row.querySelectorAll('select')[0].addEventListener('change', function () { syncDiffLevels(row); });
+    }
     document.getElementById('diff-add').addEventListener('click', function () {
         var first = rows.querySelector('.diff-row');
         var clone = first.cloneNode(true);
         clone.querySelector('select').selectedIndex = 0;
+        var sels = clone.querySelectorAll('select');
+        if (sels[1]) sels[1].value = '1';
         rows.appendChild(clone);
+        bindDiffRow(clone);
         bindRemove(clone);
     });
     function bindRemove(row) {
@@ -192,7 +214,7 @@ $pe_spj_exists = !empty($pe_spj_exists);
             if (rows.querySelectorAll('.diff-row').length > 1) row.remove();
         });
     }
-    rows.querySelectorAll('.diff-row').forEach(bindRemove);
+    rows.querySelectorAll('.diff-row').forEach(function (row) { bindDiffRow(row); bindRemove(row); });
 
     // ── 特判上传区域显隐 ──
     var spj = document.getElementById('spj-toggle'), box = document.getElementById('spj-box');

@@ -2,6 +2,7 @@
 $title = '修改资料';
 require_once 'inc/config.php';
 require_once 'inc/db.php';
+require_once 'inc/functions.php';
 require_once 'inc/TOTP.php';
 if (session_status() === PHP_SESSION_NONE) @session_start();
 if (!isset($_SESSION['airoj_user'])) { header('Location: login.php'); exit; }
@@ -24,8 +25,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $ok = '邮箱已更新';
     }
     if ($pw_old && $pw_new) {
-        $row = Database::fetchOne("SELECT password, twofa_enabled, twofa_secret FROM users WHERE user_id=?", [$uid]);
-        if (!password_verify($pw_old, (string)$row['password'])) {
+        $row = Database::fetchOne("SELECT password, twofa_enabled, twofa_secret, hydro_salt, hydro_hash FROM users WHERE user_id=?", [$uid]);
+        if (!verify_login_password($row ?: [], $pw_old)) {
             $err = '原密码错误';
         } elseif (strlen($pw_new) < 6) {
             $err = '新密码至少 6 位';
@@ -34,7 +35,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $totp = new TOTP((string)$row['twofa_secret']);
             if ($code === '' || !$totp->verify($code)) $err = '二步验证码错误';
         } else {
-            Database::exec("UPDATE users SET password=? WHERE user_id=?", [password_hash($pw_new, PASSWORD_DEFAULT), $uid]);
+            Database::exec(
+                "UPDATE users SET password=?, hydro_salt=NULL, hydro_hash=NULL, must_change_password=0 WHERE user_id=?",
+                [password_hash($pw_new, PASSWORD_DEFAULT), $uid]
+            );
             $ok = '密码已更新';
         }
     }

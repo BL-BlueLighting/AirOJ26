@@ -17,6 +17,12 @@ $err = ''; $ok = '';
 $tab = $_GET['tab'] ?? 'profile';
 $is_manager = (bool)Database::fetchOne("SELECT 1 AS x FROM privilege WHERE user_id=? AND right_str IN ('administrator','moderator')", [$uid]);
 
+// Hydro 迁移账号：修改密码前不允许切换其他设置页
+if (!empty($user['must_change_password']) && $tab !== 'password') {
+    header('Location: /settings.php?tab=password&force=1');
+    exit;
+}
+
 /** 保存成功后重定向（必须在输出任何 HTML 之前，保证新主题/背景立即生效） */
 function settings_redirect(string $tab, string $msg): void
 {
@@ -80,6 +86,97 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['airoj_user']['background'] = '';
         settings_redirect('background', '已恢复默认背景');
     }
+    // 头像：QQ / 上传 / Gravatar
+    if (isset($_POST['save_qq_avatar'])) {
+        $qq = trim((string)($_POST['qq'] ?? ''));
+        if (!avatars_enabled()) {
+            $err = '管理员已关闭自定义头像';
+        } elseif (!preg_match('/^\d{5,12}$/', $qq)) {
+            $err = 'QQ 号格式不正确（5~12 位数字）';
+        } else {
+            $avatar = "https://q1.qlogo.cn/g?b=qq&nk={$qq}&s=640";
+            Database::exec("UPDATE users SET avatar=? WHERE user_id=?", [$avatar, $uid]);
+            $safe_uid = preg_replace('/[^A-Za-z0-9_.-]/', '_', $uid);
+            foreach (glob(__DIR__ . '/data/uploads/avatar-' . $safe_uid . '.*') ?: [] as $f) @unlink($f);
+            $_SESSION['airoj_user']['avatar'] = $avatar;
+            settings_redirect('avatar', 'QQ 头像已更新');
+        }
+    }
+    if (isset($_POST['upload_avatar'])) {
+        $file = $_FILES['avatar_file'] ?? [];
+        $safe_uid = preg_replace('/[^A-Za-z0-9_.-]/', '_', $uid);
+        if (!avatar_uploads_enabled()) {
+            $err = '管理员已关闭头像上传';
+        } elseif (empty($file['name']) || ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            $err = '请选择头像图片';
+        } elseif (($file['size'] ?? 0) > 4 * 1024 * 1024) {
+            $err = '头像图片不能超过 4MB';
+        } else {
+            $ext = strtolower(pathinfo((string)$file['name'], PATHINFO_EXTENSION));
+            if (!in_array($ext, ['png', 'jpg', 'jpeg', 'gif', 'webp'], true)) {
+                $err = '仅支持 PNG / JPG / GIF / WEBP';
+            } else {
+                $dir = __DIR__ . '/data/uploads/';
+                if (!is_dir($dir)) @mkdir($dir, 0755, true);
+                foreach (glob($dir . 'avatar-' . $safe_uid . '.*') ?: [] as $f) @unlink($f);
+                $name = 'avatar-' . $safe_uid . '.' . $ext;
+                if (!move_uploaded_file($file['tmp_name'], $dir . $name)) {
+                    $err = '头像保存失败';
+                } else {
+                    $avatar = 'data/uploads/' . $name;
+                    Database::exec("UPDATE users SET avatar=? WHERE user_id=?", [$avatar, $uid]);
+                    $_SESSION['airoj_user']['avatar'] = $avatar;
+                    settings_redirect('avatar', '头像已更新');
+                }
+            }
+        }
+    }
+    if (isset($_POST['use_gravatar'])) {
+        Database::exec("UPDATE users SET avatar='' WHERE user_id=?", [$uid]);
+        $safe_uid = preg_replace('/[^A-Za-z0-9_.-]/', '_', $uid);
+        foreach (glob(__DIR__ . '/data/uploads/avatar-' . $safe_uid . '.*') ?: [] as $f) @unlink($f);
+        $_SESSION['airoj_user']['avatar'] = '';
+        settings_redirect('avatar', '已恢复 Gravatar 头像');
+    }
+    // 收藏品装备
+    if (isset($_POST['save_collectibles'])) {
+        $map = [
+            'frame'     => 'equipped_frame',
+            'badge'     => 'equipped_badge',
+            'bbs_style' => 'equipped_bbs_style',
+            'bubble'    => 'equipped_bubble',
+        ];
+        foreach ($map as $type => $col) {
+            $cid = (int)($_POST['equip_' . $type] ?? 0);
+            if ($cid > 0) {
+                $owned = Database::fetchOne(
+                    "SELECT 1 AS x FROM user_collectibles uc
+                     JOIN collectibles c ON c.collectible_id=uc.collectible_id
+                     WHERE uc.user_id=? AND uc.collectible_id=? AND c.type=?",
+                    [$uid, $cid, $type]
+                );
+                if (!$owned) $cid = 0;
+            }
+            Database::exec("UPDATE users SET `$col`=? WHERE user_id=?", [$cid, $uid]);
+        }
+        settings_redirect('collectibles', '收藏品装备已更新');
+    }
+    // 称号申请
+    if (isset($_POST['apply_title'])) {
+        $t = trim((string)($_POST['title'] ?? ''));
+        $reason = trim((string)($_POST['title_reason'] ?? ''));
+        $pending = Database::fetchOne("SELECT 1 AS x FROM title_applications WHERE user_id=? AND status='pending'", [$uid]);
+        if ($t === '') {
+            $err = '请填写称号';
+        } elseif (mb_strlen($t) > 32) {
+            $err = '称号不能超过 32 个字符';
+        } elseif ($pending) {
+            $err = '你已有一个待审核的称号申请';
+        } else {
+            Database::insert("INSERT INTO title_applications (user_id,title,reason) VALUES (?,?,?)", [$uid, $t, $reason]);
+            settings_redirect('title', '称号申请已提交，等待管理员审核');
+        }
+    }
     // 个人资料（昵称 / 邮箱 / 学校 / 名字颜色）
     if (isset($_POST['update_profile'])) {
         $nick   = trim($_POST['nick'] ?? '');
@@ -109,7 +206,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $new  = (string)($_POST['password_new'] ?? '');
         $new2 = (string)($_POST['password_new2'] ?? '');
 
-        if (!password_verify($old, (string)$user['password'])) {
+        if (!verify_login_password($user, $old)) {
             $err = '原密码错误';
         } elseif (strlen($new) < 6) {
             $err = '新密码至少 6 位';
@@ -122,7 +219,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($err === '') {
-            Database::exec("UPDATE users SET password=? WHERE user_id=?", [password_hash($new, PASSWORD_DEFAULT), $uid]);
+            // 修改成功即清除 Hydro 迁移密码，之后只保留 AirOJ 新密码
+            Database::exec(
+                "UPDATE users SET password=?, hydro_salt=NULL, hydro_hash=NULL, must_change_password=0 WHERE user_id=?",
+                [password_hash($new, PASSWORD_DEFAULT), $uid]
+            );
+            $_SESSION['airoj_user']['must_change_password'] = 0;
+            unset($_SESSION['airoj_user']['hydro_salt'], $_SESSION['airoj_user']['hydro_hash']);
             session_regenerate_id(true);
             settings_redirect('password', '密码已修改');
         }
@@ -151,6 +254,8 @@ $new_secret = TOTP::generateSecret();
 $otpauth = TOTP::getOTPAuthURI($uid, $new_secret);
 
 require 'inc/header.php';
+// header.php 会用 session 覆盖 $user，这里重新读一次数据库，保证设置页显示最新数据
+$user = Database::fetchOne("SELECT * FROM users WHERE user_id=?", [$uid]);
 ?>
 <style>
 .tab-bar { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 24px; }
@@ -163,8 +268,11 @@ require 'inc/header.php';
 
 <div class="tab-bar">
     <a href="?tab=profile" class="<?=$tab==='profile'?'active':''?>"><i class="fa-solid fa-pen-to-square"></i> 个人简介</a>
+    <a href="?tab=avatar" class="<?=$tab==='avatar'?'active':''?>"><i class="fa-solid fa-image"></i> 头像</a>
     <a href="?tab=theme" class="<?=$tab==='theme'?'active':''?>"><i class="fa-solid fa-swatchbook"></i> 主题</a>
     <a href="?tab=background" class="<?=$tab==='background'?'active':''?>"><i class="fa-solid fa-palette"></i> 页面背景</a>
+    <a href="?tab=collectibles" class="<?=$tab==='collectibles'?'active':''?>"><i class="fa-solid fa-gem"></i> 收藏品</a>
+    <a href="?tab=title" class="<?=$tab==='title'?'active':''?>"><i class="fa-solid fa-crown"></i> 称号</a>
     <a href="?tab=2fa" class="<?=$tab==='2fa'?'active':''?>"><i class="fa-solid fa-lock"></i> 二步验证</a>
     <a href="?tab=password" class="<?=$tab==='password'?'active':''?>"><i class="fa-solid fa-key"></i> 修改密码</a>
 </div>
@@ -184,7 +292,7 @@ $my_name_color = (string)($user['name_color'] ?? '');
 <div class="profile-wrap">
     <div class="profile-side">
         <div class="profile-avatar">
-            <img src="https://www.gravatar.com/avatar/<?= $email_md5 ?>?s=200&d=identicon" alt="avatar">
+            <img src="<?= htmlspecialchars(user_avatar_url($user, 200)) ?>" alt="avatar">
             <div class="pname"><?= user_role_html($uid, $user['nick'] ?: $uid) ?></div>
             <div class="pid"><?= htmlspecialchars($uid) ?></div>
         </div>
@@ -251,6 +359,68 @@ $my_name_color = (string)($user['name_color'] ?? '');
     </div>
 </div>
 <script src="/js/md-toolbar.js?v=1"></script>
+
+<?php elseif ($tab === 'avatar'): ?>
+<?php
+$avatar_now = trim((string)($user['avatar'] ?? ''));
+$avatar_preview = user_avatar_url($user, 200);
+$qq_now = '';
+if (preg_match('~q1\.qlogo\.cn.*[?&]nk=(\d+)~', $avatar_now, $m)) $qq_now = $m[1];
+if ($avatar_now === '') $avatar_source = 'Gravatar（按邮箱生成）';
+elseif ($qq_now !== '') $avatar_source = 'QQ 头像';
+elseif (str_starts_with($avatar_now, 'data/uploads/')) $avatar_source = '本地上传';
+else $avatar_source = '自定义图片地址';
+?>
+<div class="card" style="max-width:640px">
+    <h2><i class="fa-solid fa-image"></i> 头像设置</h2>
+    <?php if (!avatars_enabled()): ?>
+    <div class="alert alert-info"><i class="fa-solid fa-lock"></i> 管理员已关闭自定义头像，当前统一使用 Gravatar。</div>
+    <div style="display:flex;align-items:center;gap:18px">
+        <img src="<?= htmlspecialchars($avatar_preview) ?>" alt="avatar" style="width:96px;height:96px;border-radius:50%;object-fit:cover;border:2px solid var(--border)">
+        <span style="font-size:13px;color:var(--text-secondary)">Gravatar（按邮箱生成）</span>
+    </div>
+    <?php else: ?>
+    <div style="display:flex;align-items:center;gap:18px;margin-bottom:20px">
+        <img src="<?= htmlspecialchars($avatar_preview) ?>" alt="avatar" style="width:96px;height:96px;border-radius:50%;object-fit:cover;border:2px solid var(--border)">
+        <span style="font-size:13px;color:var(--text-secondary)">当前头像来源：<?= htmlspecialchars($avatar_source) ?></span>
+    </div>
+
+    <div class="form-group">
+        <label>使用 QQ 头像</label>
+        <form method="post" class="form-row" style="align-items:flex-end">
+            <div class="form-group" style="flex:1;margin:0">
+                <input type="text" name="qq" class="form-input" value="<?= htmlspecialchars($qq_now) ?>"
+                       placeholder="输入 QQ 号，例如 123456" pattern="\d{5,12}" required>
+            </div>
+            <button type="submit" name="save_qq_avatar" class="btn btn-primary">保存 QQ 头像</button>
+        </form>
+        <p style="margin-top:6px;font-size:12px;color:var(--text-muted)">
+            使用高清 QQ 头像：<code>https://q1.qlogo.cn/g?b=qq&amp;nk=QQ号&amp;s=640</code>
+        </p>
+    </div>
+
+    <?php if (avatar_uploads_enabled()): ?>
+    <div class="form-group">
+        <label>上传头像</label>
+        <form method="post" enctype="multipart/form-data" class="form-row" style="align-items:flex-end">
+            <div class="form-group" style="flex:1;margin:0">
+                <input type="file" name="avatar_file" class="form-input" accept="image/png,image/jpeg,image/gif,image/webp" required>
+            </div>
+            <button type="submit" name="upload_avatar" class="btn btn-primary">上传头像</button>
+        </form>
+        <p style="margin-top:6px;font-size:12px;color:var(--text-muted)">支持 PNG / JPG / GIF / WEBP，不超过 4MB。</p>
+    </div>
+    <?php else: ?>
+    <p style="font-size:13px;color:var(--text-muted)">管理员已关闭头像上传。</p>
+    <?php endif; ?>
+
+    <form method="post" style="margin-top:12px">
+        <button type="submit" name="use_gravatar" class="btn btn-outline">
+            <i class="fa-solid fa-rotate-left"></i> 恢复 Gravatar 头像
+        </button>
+    </form>
+    <?php endif; ?>
+</div>
 
 <?php elseif ($tab === 'theme'): ?>
 <?php $cur_theme = current_theme($user); ?>
@@ -328,6 +498,119 @@ $bg_css  = background_css(resolve_background($user), current_theme($user));
     <?php endif; ?>
 </div>
 
+<?php elseif ($tab === 'collectibles'): ?>
+<?php
+$owned = Database::fetchAll(
+    "SELECT c.* FROM collectibles c
+     JOIN user_collectibles uc ON uc.collectible_id=c.collectible_id
+     WHERE uc.user_id=? ORDER BY c.type, c.collectible_id", [$uid]);
+$byType = [];
+foreach ($owned as $c) $byType[$c['type']][] = $c;
+$equippedIds = [
+    'frame'     => (int)($user['equipped_frame'] ?? 0),
+    'badge'     => (int)($user['equipped_badge'] ?? 0),
+    'bbs_style' => (int)($user['equipped_bbs_style'] ?? 0),
+    'bubble'    => (int)($user['equipped_bubble'] ?? 0),
+];
+$displayName = $user['nick'] ?: $uid;
+?>
+<div class="card">
+    <h2><i class="fa-solid fa-gem"></i> 收藏品</h2>
+    <p style="color:var(--text-secondary);font-size:13px;margin-bottom:16px">收藏品由管理员授予，每种类型只能装备一件。</p>
+    <form method="post">
+    <?php foreach (AIR_OJ_COLLECTIBLE_TYPES as $type => $meta): ?>
+        <div class="collect-block">
+            <h3><i class="fa-solid <?= $meta['icon'] ?>"></i> <?= htmlspecialchars($meta['label']) ?></h3>
+            <?php if (empty($byType[$type])): ?>
+            <p style="color:var(--text-muted);font-size:13px">暂无该类型收藏品。</p>
+            <?php else: ?>
+            <label class="collect-item">
+                <input type="radio" name="equip_<?= $type ?>" value="0" <?= $equippedIds[$type] === 0 ? 'checked' : '' ?>>
+                <span class="collect-preview" style="color:var(--text-muted)">不使用</span>
+            </label>
+            <?php foreach ($byType[$type] as $c): ?>
+            <label class="collect-item">
+                <input type="radio" name="equip_<?= $type ?>" value="<?= (int)$c['collectible_id'] ?>" <?= $equippedIds[$type] === (int)$c['collectible_id'] ? 'checked' : '' ?>>
+                <?php $css = collectible_css_value((string)$c['value']); ?>
+                <?php if ($type === 'frame'): ?>
+                <span class="u-frame" style="<?= htmlspecialchars($css, ENT_COMPAT) ?>"><?= htmlspecialchars($displayName) ?></span>
+                <?php elseif ($type === 'badge'): ?>
+                <?php
+                    [$bIcon, $bColor] = array_pad(explode('|', (string)$c['value'], 2), 2, '');
+                    $bIcon = strtolower(preg_replace('/[^a-z0-9-]/', '', $bIcon));
+                    if ($bIcon !== '' && !str_starts_with($bIcon, 'fa-')) $bIcon = 'fa-' . $bIcon;
+                    $bColor = preg_match('/^#[0-9a-fA-F]{3,8}$/', $bColor) ? $bColor : '#f5b94a';
+                ?>
+                <span style="color:<?= $bColor ?>"><i class="fa-solid <?= htmlspecialchars($bIcon) ?>"></i></span>
+                <?php else: ?>
+                <span class="collect-preview-box" style="<?= htmlspecialchars($css, ENT_COMPAT) ?>"><?= $type === 'bubble' ? '站内信气泡预览' : '帖子样式预览' ?></span>
+                <?php endif; ?>
+                <span class="collect-info"><strong><?= htmlspecialchars($c['name']) ?></strong>
+                    <?php if (!empty($c['description'])): ?><small><?= htmlspecialchars($c['description']) ?></small><?php endif; ?>
+                </span>
+            </label>
+            <?php endforeach; ?>
+            <?php endif; ?>
+        </div>
+    <?php endforeach; ?>
+        <button type="submit" name="save_collectibles" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> 保存装备</button>
+    </form>
+</div>
+
+<?php elseif ($tab === 'title'): ?>
+<?php
+$myTitle = trim((string)($user['title'] ?? ''));
+$titleApps = Database::fetchAll("SELECT * FROM title_applications WHERE user_id=? ORDER BY application_id DESC LIMIT 20", [$uid]);
+$hasPending = false;
+foreach ($titleApps as $ta) { if ($ta['status'] === 'pending') { $hasPending = true; break; } }
+$statusText = ['pending' => '审核中', 'approved' => '已通过', 'rejected' => '已驳回'];
+$statusCls  = ['pending' => 'tag-gold', 'approved' => 'tag-green', 'rejected' => 'tag-red'];
+?>
+<div class="card" style="max-width:820px">
+    <h2><i class="fa-solid fa-crown"></i> 当前称号</h2>
+    <p style="font-size:14px">
+        <?php if ($myTitle !== ''): ?><span class="u-title"><?= htmlspecialchars($myTitle) ?></span>
+        <?php else: ?><span style="color:var(--text-muted)">暂无称号</span><?php endif; ?>
+    </p>
+</div>
+
+<div class="card" style="max-width:820px">
+    <h2><i class="fa-solid fa-paper-plane"></i> 申请称号</h2>
+    <p style="color:var(--text-secondary);font-size:13px;margin-bottom:14px">填写希望获得的称号并说明理由，管理员审核通过后会在名字旁显示。</p>
+    <?php if ($hasPending): ?>
+    <div class="alert alert-info"><i class="fa-solid fa-hourglass-half"></i> 你已有一个待审核的称号申请，请等待管理员处理。</div>
+    <?php else: ?>
+    <form method="post">
+        <div class="form-group"><label>称号 *</label>
+            <input type="text" name="title" class="form-input" maxlength="32" required placeholder="例如：夜行生物"></div>
+        <div class="form-group"><label>申请理由</label>
+            <textarea name="title_reason" class="form-input" style="min-height:100px" placeholder="简单说明为什么希望获得这个称号"></textarea></div>
+        <button type="submit" name="apply_title" class="btn btn-primary"><i class="fa-solid fa-paper-plane"></i> 提交申请</button>
+    </form>
+    <?php endif; ?>
+</div>
+
+<div class="card" style="max-width:820px">
+    <h2><i class="fa-solid fa-clock-rotate-left"></i> 申请记录</h2>
+    <?php if (!$titleApps): ?>
+    <p style="color:var(--text-muted)">暂无申请记录。</p>
+    <?php else: ?>
+    <div class="table-wrap"><table>
+        <thead><tr><th>称号</th><th>理由</th><th>状态</th><th>申请时间</th></tr></thead>
+        <tbody>
+        <?php foreach ($titleApps as $ta): ?>
+        <tr>
+            <td><strong><?= htmlspecialchars($ta['title']) ?></strong></td>
+            <td style="color:var(--text-secondary);font-size:12px"><?= htmlspecialchars($ta['reason'] ?? '') ?></td>
+            <td><span class="tag <?= $statusCls[$ta['status']] ?? '' ?>"><?= $statusText[$ta['status']] ?? htmlspecialchars($ta['status']) ?></span></td>
+            <td style="color:var(--text-muted);font-size:12px"><?= htmlspecialchars($ta['created_at']) ?></td>
+        </tr>
+        <?php endforeach; ?>
+        </tbody>
+    </table></div>
+    <?php endif; ?>
+</div>
+
 <?php elseif ($tab === '2fa'): ?>
 <div class="card" style="max-width:600px">
     <h2><i class="fa-solid fa-lock"></i> 二步验证 (2FA)</h2>
@@ -366,9 +649,20 @@ $bg_css  = background_css(resolve_background($user), current_theme($user));
 <?php elseif ($tab === 'password'): ?>
 <div class="card" style="max-width:420px">
     <h2><i class="fa-solid fa-key"></i> 修改密码</h2>
+    <?php if (!empty($user['must_change_password'])): ?>
+    <div class="alert alert-error" style="margin-bottom:14px">
+        <strong><i class="fa-solid fa-triangle-exclamation"></i> 请先修改密码</strong><br>
+        你的账号从 HydroOJ 迁移而来。修改成功前无法访问其他页面。
+    </div>
+    <?php endif; ?>
     <?php if (!empty($user['twofa_enabled'])): ?>
     <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">
         你的账号已开启二步验证：需要先验证原密码，再输入验证器中的 6 位验证码。
+    </p>
+    <?php endif; ?>
+    <?php if (!empty($user['hydro_hash'])): ?>
+    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">
+        Hydro 迁移账号：原密码可填写 HydroOJ 密码或 AirOJ 原密码。
     </p>
     <?php endif; ?>
     <form method="post">

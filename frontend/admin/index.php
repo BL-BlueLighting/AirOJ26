@@ -548,7 +548,7 @@ function import_hustoj(string $dir, string $name): void {
     <?php if ($ok): ?><div class="alert alert-success"><?=htmlspecialchars($ok)?></div><?php endif; ?>
     <div class="card"><form method="post">
         <div class="form-group"><label>用户名</label><input type="text" name="user_id" class="form-input" required></div>
-        <div class="form-group"><label>权限</label><select name="right_str" class="form-input"><option value="administrator">administrator（管理员）</option><option value="moderator">moderator（版主）</option><option value="source_browser">source_browser（查看代码）</option></select></div>
+        <div class="form-group"><label>权限</label><select name="right_str" class="form-input"><option value="administrator">administrator（管理员）</option><option value="moderator">moderator（版主）</option><option value="source_viewer">source_viewer（查看代码）</option></select></div>
         <div class="form-group"><label>原因</label><input type="text" name="reason" class="form-input" placeholder="记录到权限日志"></div>
         <button type="submit" class="btn btn-primary">授予</button>
     </form></div>

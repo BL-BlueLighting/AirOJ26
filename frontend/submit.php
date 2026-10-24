@@ -4,6 +4,12 @@ require_once 'inc/db.php';
 require_once 'inc/functions.php';
 if (session_status() === PHP_SESSION_NONE) @session_start();
 
+// Hydro 迁移账号必须先修改密码
+if (!empty($_SESSION['airoj_user']['must_change_password'])) {
+    header('Location: /settings.php?tab=password&force=1');
+    exit;
+}
+
 $pid = $_POST['pid'] ?? '';
 $lang = $_POST['language'] ?? '';
 $judgeType = $_POST['judge_type'] ?? 'standard';

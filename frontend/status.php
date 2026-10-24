@@ -37,6 +37,10 @@ $rows  = Database::fetchAll(
 $maxP = max(1, ceil($total / $limit));
 $langs = get_language_configs();
 
+// 源码可见性：管理员 / source_viewer 可看全部，普通用户只能看自己的
+$viewer = $_SESSION['airoj_user'] ?? null;
+$view_all_sources = user_can_view_all_sources($viewer);
+
 // 保留筛选条件的分页链接
 $qs = $_GET; unset($qs['page']);
 function page_url(array $qs, int $p): string { return '?' . http_build_query(array_merge($qs, ['page' => $p])); }
@@ -95,7 +99,9 @@ function page_url(array $qs, int $p): string { return '?' . http_build_query(arr
 <td style="color:var(--text-muted);font-size:12px"><?= htmlspecialchars($r['created_at'] ?? '') ?></td>
 <td>
     <a href="result.php?id=<?= $r['id'] ?>" class="btn btn-primary btn-xs">查看</a>
+    <?php if ($viewer && ($view_all_sources || (string)$viewer['user_id'] === (string)$r['user_id'])): ?>
     <a href="source.php?id=<?= $r['id'] ?>" class="btn btn-outline btn-xs">源码</a>
+    <?php endif; ?>
 </td>
 </tr>
 <?php endforeach; endif; ?>

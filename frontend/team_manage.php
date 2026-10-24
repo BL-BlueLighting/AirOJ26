@@ -83,10 +83,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Location: /team.php?deleted=1'); exit;
     }
     if ($action === 'apply_verify' && $is_owner) {
+        $verify_name = trim($_POST['verify_name'] ?? '');
         $reason = trim($_POST['verify_reason'] ?? '');
-        if ($reason === '') $err = '请填写申请理由';
+        if ($verify_name === '') $err = '请填写认证名称';
+        elseif ($reason === '') $err = '请填写申请理由';
         else {
-            Database::exec("UPDATE teams SET verify_reason=?, verify_status='pending' WHERE team_id=?", [$reason, $tid]);
+            Database::exec("UPDATE teams SET verify_name=?, verify_reason=?, verify_status='pending' WHERE team_id=?",
+                [$verify_name, $reason, $tid]);
             $ok = '认证申请已提交，等待管理员审核';
         }
     }
@@ -102,6 +105,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $ok = "已拒绝 {$target} 的申请";
     }
     if ($action === 'verify' && $is_admin) {
+        if (trim((string)($team['verify_name'] ?? '')) === '') {
+            Database::exec("UPDATE teams SET verify_name=? WHERE team_id=?", [$team['name'], $tid]);
+        }
         Database::exec("UPDATE teams SET verified=1, verify_status='approved' WHERE team_id=?", [$tid]);
         $ok = '团队已认证';
     }
@@ -157,12 +163,18 @@ $status_text = ['none' => '未申请', 'pending' => '审核中', 'approved' => '
     <h2><i class="fa-solid fa-certificate"></i> 团队认证</h2>
     <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">
         当前状态：<strong style="color:<?= $team['verified'] ? 'var(--green)' : 'var(--text-muted)' ?>"><?= $team['verified'] ? '✅ 已认证' : $status_text ?></strong>
+        <?php if (!empty($team['verify_name'])): ?>
+        <br>认证名称：<strong><?=htmlspecialchars($team['verify_name'])?></strong>
+        <?php endif; ?>
         <?php if ($verify_status === 'pending'): ?>
         <br>申请理由：<?=htmlspecialchars($team['verify_reason'] ?? '')?>
         <?php endif; ?>
     </p>
     <?php if (!$team['verified'] && $verify_status !== 'pending'): ?>
     <form method="post"><input type="hidden" name="action" value="apply_verify">
+        <div class="form-group"><label>认证名称 *</label>
+            <input type="text" name="verify_name" class="form-input" maxlength="100" required
+                   value="<?=htmlspecialchars($team['verify_name'] ?? '')?>" placeholder="填写希望认证的组织 / 团队正式名称"></div>
         <div class="form-group"><label>申请理由 *</label>
             <textarea name="verify_reason" class="form-input" style="min-height:100px" required placeholder="介绍团队情况、成员构成、代表成绩等，便于管理员审核"></textarea></div>
         <button type="submit" class="btn btn-primary">提交认证申请</button>

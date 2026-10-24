@@ -454,14 +454,166 @@ function rating_name_html(string $disp, int $rating): string
 }
 
 /**
+ * 校验 HydroOJ 迁移密码
+ * Hydro 使用 PBKDF2-SHA256（100000 次，64 字节），存 hex 前 64 位
+ */
+function verify_hydro_password(array $user, string $password): bool
+{
+    $salt = (string)($user['hydro_salt'] ?? '');
+    $hash = (string)($user['hydro_hash'] ?? '');
+    if ($salt === '' || $hash === '') return false;
+    $calc = substr(hash_pbkdf2('sha256', $password, $salt, 100000, 64), 0, 64);
+    return hash_equals($hash, $calc);
+}
+
+/** 登录密码校验：AirOJ 自有密码或 HydroOJ 迁移密码均可 */
+function verify_login_password(array $user, string $password): bool
+{
+    if (!empty($user['password']) && password_verify($password, (string)$user['password'])) {
+        return true;
+    }
+    return verify_hydro_password($user, $password);
+}
+
+/** 管理员是否开启了自定义头像（QQ / 上传） */
+function avatars_enabled(): bool
+{
+    static $enabled = null;
+    if ($enabled === null) {
+        try {
+            $enabled = Database::getConfig('avatar_enabled') !== '0';
+        } catch (Throwable $e) {
+            $enabled = true;
+        }
+    }
+    return $enabled;
+}
+
+/** 管理员是否允许用户上传头像文件 */
+function avatar_uploads_enabled(): bool
+{
+    static $enabled = null;
+    if ($enabled === null) {
+        try {
+            $enabled = avatars_enabled() && Database::getConfig('avatar_upload_enabled') !== '0';
+        } catch (Throwable $e) {
+            $enabled = avatars_enabled();
+        }
+    }
+    return $enabled;
+}
+
+/** 用户头像 URL：优先自定义头像（受管理员开关控制），否则 Gravatar */
+function user_avatar_url(array $user, int $size = 200): string
+{
+    $custom = trim((string)($user['avatar'] ?? ''));
+    if ($custom !== '' && avatars_enabled()) {
+        return preg_match('~^(https?://|data:image/)~i', $custom)
+            ? $custom
+            : '/' . ltrim($custom, '/');
+    }
+    $md5 = md5(strtolower(trim((string)($user['email'] ?? ''))));
+    return "https://www.gravatar.com/avatar/{$md5}?s={$size}&d=identicon";
+}
+
+/**
+ * 是否拥有查看任意提交源码的权限
+ * administrator / source_viewer（兼容历史权限名 source_browser）
+ */
+function user_can_view_all_sources(?array $user): bool
+{
+    if (!$user || empty($user['user_id'])) return false;
+    return (bool)Database::fetchOne(
+        "SELECT 1 AS x FROM privilege WHERE user_id=? AND right_str IN ('administrator','source_viewer','source_browser')",
+        [$user['user_id']]
+    );
+}
+
+/** 收藏品类型定义 */
+const AIR_OJ_COLLECTIBLE_TYPES = [
+    'frame'     => ['label' => '姓名框', 'icon' => 'fa-id-badge',   'hint' => 'CSS 声明，作用于名字外框。例如 border:1px solid #f5b94a;border-radius:6px;padding:1px 8px;'],
+    'badge'     => ['label' => '徽章',   'icon' => 'fa-award',      'hint' => '格式：图标|颜色。例如 fa-crown|#ffd700'],
+    'bbs_style' => ['label' => '讨论区样式', 'icon' => 'fa-comments', 'hint' => 'CSS 声明，作用于帖子卡片。例如 border-color:#a855f7;background:rgba(168,85,247,.08);'],
+    'bubble'    => ['label' => '站内信气泡', 'icon' => 'fa-envelope', 'hint' => 'CSS 声明，作用于站内信内容框。例如 border:1px solid #4da6ff;border-radius:12px;padding:14px;'],
+];
+
+/** 授予成就（重复授予无副作用） */
+function award_achievement(string $user_id, string $code): void
+{
+    $a = Database::fetchOne("SELECT achievement_id FROM achievements WHERE code=?", [$code]);
+    if (!$a) return;
+    if (DB_DRIVER === 'mysql') {
+        Database::exec("INSERT IGNORE INTO user_achievements (user_id,achievement_id) VALUES (?,?)", [$user_id, $a['achievement_id']]);
+    } else {
+        Database::exec("INSERT OR IGNORE INTO user_achievements (user_id,achievement_id) VALUES (?,?)", [$user_id, $a['achievement_id']]);
+    }
+}
+
+/** 在线时检查时间类成就：夜猫子（23:59 之后 ~ 05:59） */
+function check_time_achievements(string $user_id): void
+{
+    $h = (int)date('G');
+    $m = (int)date('i');
+    if (($h === 23 && $m >= 59) || $h < 6) {
+        award_achievement($user_id, 'night_owl');
+    }
+}
+
+/** 用户当前装备的收藏品（按类型索引） */
+function user_equipped_collectibles(string $user_id, bool $fresh = false): array
+{
+    static $cache = [];
+    if (isset($cache[$user_id]) && !$fresh) return $cache[$user_id];
+
+    $row = Database::fetchOne(
+        "SELECT equipped_frame, equipped_badge, equipped_bbs_style, equipped_bubble FROM users WHERE user_id=?",
+        [$user_id]
+    );
+    $columns = [
+        'frame'     => 'equipped_frame',
+        'badge'     => 'equipped_badge',
+        'bbs_style' => 'equipped_bbs_style',
+        'bubble'    => 'equipped_bubble',
+    ];
+    $out = [];
+    foreach ($columns as $type => $col) {
+        $cid = (int)($row[$col] ?? 0);
+        if ($cid <= 0) continue;
+        $owned = Database::fetchOne(
+            "SELECT c.* FROM collectibles c
+             JOIN user_collectibles uc ON uc.collectible_id=c.collectible_id
+             WHERE uc.user_id=? AND c.collectible_id=? AND c.type=?",
+            [$user_id, $cid, $type]
+        );
+        if ($owned) $out[$type] = $owned;
+    }
+    $cache[$user_id] = $out;
+    return $out;
+}
+
+/** 清理收藏品中的 CSS 值（只用于受信任的管理员配置） */
+function collectible_css_value(string $value): string
+{
+    return trim(str_replace(['<', '>', '{', '}', '"', "'"], '', $value));
+}
+
+/** 某用户装备的指定类型收藏品的 CSS 声明 */
+function collectible_type_css(string $user_id, string $type): string
+{
+    $items = user_equipped_collectibles($user_id);
+    return isset($items[$type]) ? collectible_css_value((string)$items[$type]['value']) : '';
+}
+
+/**
  * 用户角色名称与颜色
  * 作弊者只显示棕色；管理员紫色、版主黄色；带 Rating 分级时可平分名字
+ * 同时附加称号与徽章：空间不足时优先保留称号
  */
 function user_role_html(string $user_id, ?string $nick = null): string
 {
     static $cache = [];
     if (!isset($cache[$user_id])) {
-        $u = Database::fetchOne("SELECT rating, name_color FROM users WHERE user_id=?", [$user_id]);
+        $u = Database::fetchOne("SELECT rating, name_color, title FROM users WHERE user_id=?", [$user_id]);
         $roles = [];
         foreach (Database::fetchAll("SELECT right_str FROM privilege WHERE user_id=?", [$user_id]) as $r) {
             $roles[$r['right_str']] = true;
@@ -469,6 +621,7 @@ function user_role_html(string $user_id, ?string $nick = null): string
         $cache[$user_id] = [
             'rating'     => (int)round($u['rating'] ?? 0),
             'name_color' => (string)($u['name_color'] ?? ''),
+            'title'      => (string)($u['title'] ?? ''),
             'roles'      => $roles,
         ];
     }
@@ -477,39 +630,66 @@ function user_role_html(string $user_id, ?string $nick = null): string
 
     // 作弊者：只显示棕名
     if (isset($info['roles']['cheater'])) {
-        return '<span style="color:#8B4513"><i class="fa-solid fa-poo"></i> ' . $disp . '</span>';
-    }
+        $nameHtml = '<span style="color:#8B4513"><i class="fa-solid fa-poo"></i> ' . $disp . '</span>';
+    } else {
+        $roleColor = isset($info['roles']['administrator']) ? '#a855f7'
+                   : (isset($info['roles']['moderator']) ? '#eab308' : '');
+        $choice = $info['name_color'];
 
-    $roleColor = isset($info['roles']['administrator']) ? '#a855f7'
-               : (isset($info['roles']['moderator']) ? '#eab308' : '');
-    $choice = $info['name_color'];
-
-    // 特殊四色渐变
-    if ($choice === 'special') {
-        return '<span style="background:' . special_gradient_css() . ';'
-             . '-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:600">' . $disp . '</span>';
-    }
-
-    // 管理员指定的安全单色
-    if (isset(AIR_OJ_NAME_COLORS[$choice])) {
-        return '<span style="color:' . AIR_OJ_NAME_COLORS[$choice]['color'] . ';font-weight:600">' . $disp . '</span>';
-    }
-
-    // 管理专属：整名管理色 / 平分
-    if (($choice === 'role' || $choice === 'split') && $roleColor !== '') {
-        if ($choice === 'role') {
-            return '<span style="color:' . $roleColor . ';font-weight:600">' . $disp . '</span>';
+        if ($choice === 'special') {
+            // 特殊四色渐变
+            $nameHtml = '<span style="background:' . special_gradient_css() . ';'
+                      . '-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:600">' . $disp . '</span>';
+        } elseif (isset(AIR_OJ_NAME_COLORS[$choice])) {
+            // 管理员指定的安全单色
+            $nameHtml = '<span style="color:' . AIR_OJ_NAME_COLORS[$choice]['color'] . ';font-weight:600">' . $disp . '</span>';
+        } elseif (($choice === 'role' || $choice === 'split') && $roleColor !== '') {
+            // 管理专属：整名管理色 / 平分
+            if ($choice === 'role') {
+                $nameHtml = '<span style="color:' . $roleColor . ';font-weight:600">' . $disp . '</span>';
+            } else {
+                $tier = rating_tier($info['rating']);
+                $grad = $tier === 'rainbow'
+                    ? rainbow_gradient_css(0.5, $roleColor)
+                    : 'linear-gradient(90deg,' . AIR_OJ_RATING_TIERS[$tier]['color'] . ' 50%,' . $roleColor . ' 50%)';
+                $nameHtml = '<span style="background:' . $grad . ';'
+                          . '-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:600">' . $disp . '</span>';
+            }
+        } else {
+            // 默认：跟随 Rating 分级颜色
+            $nameHtml = rating_name_html($disp, $info['rating']);
         }
-        $tier = rating_tier($info['rating']);
-        $grad = $tier === 'rainbow'
-            ? rainbow_gradient_css(0.5, $roleColor)
-            : 'linear-gradient(90deg,' . AIR_OJ_RATING_TIERS[$tier]['color'] . ' 50%,' . $roleColor . ' 50%)';
-        return '<span style="background:' . $grad . ';'
-             . '-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:600">' . $disp . '</span>';
     }
 
-    // 默认：跟随 Rating 分级颜色
-    return rating_name_html($disp, $info['rating']);
+    // 姓名框 / 称号 / 徽章
+    $equipped = user_equipped_collectibles($user_id);
+    $titleText = trim($info['title']);
+    $frame = $equipped['frame'] ?? null;
+    $badge = $equipped['badge'] ?? null;
+
+    if ($frame && collectible_css_value((string)$frame['value']) !== '') {
+        $nameHtml = '<span class="u-frame" style="' . htmlspecialchars(collectible_css_value((string)$frame['value']), ENT_COMPAT) . '">' . $nameHtml . '</span>';
+    }
+
+    $titleHtml = $titleText !== ''
+        ? '<span class="u-title" title="称号：' . htmlspecialchars($titleText) . '">' . htmlspecialchars($titleText) . '</span>'
+        : '';
+
+    $badgeHtml = '';
+    if ($badge) {
+        [$icon, $color] = array_pad(explode('|', (string)$badge['value'], 2), 2, '');
+        $icon = strtolower(preg_replace('/[^a-z0-9-]/', '', $icon));
+        if ($icon !== '' && !str_starts_with($icon, 'fa-')) $icon = 'fa-' . $icon;
+        $color = preg_match('/^#[0-9a-fA-F]{3,8}$/', $color) ? $color : '#f5b94a';
+        if ($icon !== '') {
+            $badgeHtml = '<span class="u-badge" style="color:' . $color . '" title="徽章：' . htmlspecialchars((string)$badge['name']) . '"><i class="fa-solid ' . $icon . '"></i></span>';
+        }
+    }
+
+    if ($titleHtml === '' && $badgeHtml === '') return $nameHtml;
+
+    // 空间不足时称号不收缩，徽章与名字让位
+    return '<span class="user-display">' . $nameHtml . $titleHtml . $badgeHtml . '</span>';
 }
 
 /**
@@ -550,13 +730,13 @@ function problem_tier_check(string $problem_id, ?array $user): array
         return ['blocked' => true, 'warn' => true, 'message' => '该题目属于 Re:MASTER 15 级，不允许越级作答。'];
     }
 
-    $next = tier_next_min($ut);
-    $target = $next !== null ? ($next - 500) : null;
+    // 越级上限按「题目所在颜色分级的最低分 - 500」计算
+    $target = (int)AIR_OJ_RATING_TIERS[$pt]['min'] - 500;
     return [
         'warn'    => true,
         'blocked' => false,
         'message' => '该题目也许超出您能力范围，若您能力范围支持做此题，在您通过本题后您的 Rating 将会提升到 '
-                   . ($target !== null ? $target : '更高等级') . '。',
+                   . $target . '。',
     ];
 }
 
@@ -582,13 +762,13 @@ function apply_rating_for_ac(string $uid, string $pid, int $sid): ?array
     $delta      = calculate_rating_delta($rating, $Q, $n_ac_total, $attempts, $attempts);
     $new        = $rating + $delta;
 
-    // 越级：不能直接跨档，最高到下一档最低分 - 500
+    // 越级：上限为题目所在颜色分级的最低分 - 500
     $pt = quality_tier($Q);
     $ut = rating_tier($rating);
     $levels = array_keys(AIR_OJ_RATING_TIERS);
     if (array_search($pt, $levels, true) > array_search($ut, $levels, true)) {
-        $next = tier_next_min($ut);
-        if ($next !== null) $new = min($new, $next - 500);
+        $cap = (int)AIR_OJ_RATING_TIERS[$pt]['min'] - 500;
+        $new = min($new, $cap);
     }
 
     $new = (int)round(max(0, min(20000, $new)));
@@ -774,24 +954,42 @@ function spj_source_path(string $pid): ?string
 }
 
 /** 保存题目的难度标签（先删后插） */
-function save_problem_difficulties(string $pid, array $post): void
+function save_problem_difficulties(string $pid, array $post): ?string
 {
-    Database::exec("DELETE FROM problem_difficulty WHERE problem_id=?", [$pid]);
     $cats = $post['diff_cat'] ?? [];
     $levels = $post['diff_level'] ?? [];
     $positions = $post['diff_pos'] ?? [];
+
+    // 先完整校验，全部合法后才删除旧数据；避免“改难度反而把难度改没了”
+    $rows = [];
     $seen = [];
     foreach ($cats as $i => $cat) {
         $cat = (string)$cat;
         $level = (int)($levels[$i] ?? 0);
         $pos = in_array($positions[$i] ?? '', ['low', 'mid', 'high'], true) ? $positions[$i] : 'mid';
-        if (!difficulty_valid($cat, $level)) continue;
+
+        if (!difficulty_valid($cat, $level)) {
+            $cfg = AIR_OJ_DIFFICULTY[$cat] ?? null;
+            $label = $cfg['label'] ?? ($cat !== '' ? $cat : '未知类别');
+            return $cfg
+                ? "难度组合无效：{$label} 只支持 {$cfg['min']} ~ {$cfg['max']} 级"
+                : "难度组合无效：未知类别 {$label}";
+        }
+
         $key = "$cat:$level:$pos";
         if (isset($seen[$key])) continue;
         $seen[$key] = true;
+        $rows[] = [$cat, $level, $pos];
+    }
+
+    if (!$rows) return '请至少设置一个有效难度';
+
+    Database::exec("DELETE FROM problem_difficulty WHERE problem_id=?", [$pid]);
+    foreach ($rows as [$cat, $level, $pos]) {
         Database::exec("INSERT INTO problem_difficulty (problem_id,category,level,position) VALUES (?,?,?,?)",
             [$pid, $cat, $level, $pos]);
     }
+    return null;
 }
 
 /**
@@ -973,8 +1171,15 @@ function turnstile_widget(): string
 {
     $k = turnstile_keys();
     if ($k['site'] === '') return '';
-    return '<div class="cf-turnstile" data-sitekey="' . htmlspecialchars($k['site']) . '" data-language="zh-cn" data-theme="auto"></div>'
-         . '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>';
+    return '<div class="turnstile-wrap">'
+         . '<div class="cf-turnstile" data-sitekey="' . htmlspecialchars($k['site']) . '" data-language="zh-cn" data-theme="auto"></div>'
+         . '<div class="turnstile-hint">这里有个人机验证，你看到我就说明没加载出来，请稍等喵。</div>'
+         . '</div>'
+         . '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>'
+         . '<script>(function(){function check(w){var b=w.querySelector(".cf-turnstile");if(b&&b.querySelector("iframe"))w.classList.add("turnstile-loaded");}'
+         . 'function init(){document.querySelectorAll(".turnstile-wrap").forEach(function(w){var b=w.querySelector(".cf-turnstile");if(!b)return;'
+         . 'if(window.MutationObserver){new MutationObserver(function(){check(w);}).observe(b,{childList:true,subtree:true});}check(w);});}'
+         . 'if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();})();</script>';
 }
 
 /* ────────────────────────── 页面背景 ────────────────────────── */
@@ -996,6 +1201,16 @@ function is_valid_background(string $bg): bool
     // http(s) 外链：禁止引号/尖括号/括号等可逃逸 CSS 的字符
     if (preg_match('~^https?://~i', $bg) && !preg_match('~[\'"<>()\\\\;{}\s|]~', $bg)) return true;
     return false;
+}
+
+/**
+ * 是否为可显示的图片引用（排除纯色 / 渐变，用于结算角色图等）
+ */
+function is_image_ref(string $v): bool
+{
+    $v = trim($v);
+    if ($v === '' || !is_valid_background($v)) return false;
+    return !preg_match('/^(#|rgb|hsl|linear-gradient|radial-gradient|conic-gradient)/i', $v);
 }
 
 /**

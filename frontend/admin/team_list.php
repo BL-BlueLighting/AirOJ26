@@ -13,6 +13,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $act = $_POST['act'] ?? '';
     if ($tid) {
         if ($act === 'approve') {
+            // 直接认证时若没有填写认证名称，则以团队名称作为认证名称
+            $t = Database::fetchOne("SELECT name, verify_name FROM teams WHERE team_id=?", [$tid]);
+            if ($t && trim((string)$t['verify_name']) === '') {
+                Database::exec("UPDATE teams SET verify_name=? WHERE team_id=?", [$t['name'], $tid]);
+            }
             Database::exec("UPDATE teams SET verified=1, verify_status='approved' WHERE team_id=?", [$tid]);
             $ok = '已通过认证';
         } elseif ($act === 'reject') {
@@ -36,10 +41,10 @@ require __DIR__ . '/_layout_top.php'; ?>
 <div class="card" style="padding:0"><div class="table-wrap"><table>
 <thead><tr>
     <th style="width:50px">#</th><th>团队</th><th style="width:70px">成员</th><th style="width:130px">所有者</th>
-    <th style="width:100px">认证状态</th><th>申请理由</th><th style="width:220px">操作</th>
+    <th style="width:100px">认证状态</th><th style="width:150px">认证名称</th><th>申请理由</th><th style="width:220px">操作</th>
 </tr></thead>
 <tbody>
-<?php if (!$teams): ?><tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-muted)">暂无团队</td></tr>
+<?php if (!$teams): ?><tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text-muted)">暂无团队</td></tr>
 <?php else: foreach ($teams as $t):
     $status = $t['verify_status'] ?? 'none';
     $label = ['none' => '未申请', 'pending' => '审核中', 'approved' => '已认证', 'rejected' => '已驳回'][$status] ?? '未申请';
@@ -55,6 +60,7 @@ require __DIR__ . '/_layout_top.php'; ?>
 <td><?=$t['member_count']?></td>
 <td><?=user_role_html($t['owner'])?></td>
 <td style="color:<?=$color?>;font-weight:600"><?=$label?></td>
+<td style="font-size:12px"><?=htmlspecialchars($t['verify_name'] ?? '') ?: '<span style="color:var(--text-muted)">—</span>'?></td>
 <td style="font-size:12px;color:var(--text-secondary)"><?=htmlspecialchars(mb_substr($t['verify_reason'] ?? '', 0, 80))?></td>
 <td>
     <a href="../team_manage.php?id=<?=$t['team_id']?>" class="btn btn-outline btn-xs" target="_blank">查看</a>

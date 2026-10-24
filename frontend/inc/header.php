@@ -20,6 +20,34 @@ require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/functions.php';
 
+// 每次请求从数据库刷新登录用户资料，避免 session 中保留旧的头像 / 背景 / 签名等
+if ($user) {
+    try {
+        $freshUser = Database::fetchOne("SELECT * FROM users WHERE user_id=?", [$user['user_id']]);
+        if ($freshUser) {
+            unset($freshUser['password'], $freshUser['hydro_salt'], $freshUser['hydro_hash']);
+            $user = array_merge($user, $freshUser);
+            $_SESSION['airoj_user'] = $user;
+        }
+    } catch (Exception $e) {}
+}
+
+// 从 HydroOJ 迁移的账号必须先修改密码，才能访问其他页面
+// 老 session 里可能没有该字段，首次访问时从数据库补一次
+if ($user && !array_key_exists('must_change_password', $user)) {
+    try {
+        $mcp = Database::fetchOne("SELECT must_change_password FROM users WHERE user_id=?", [$user['user_id']]);
+        $user['must_change_password'] = (int)($mcp['must_change_password'] ?? 0);
+        $_SESSION['airoj_user']['must_change_password'] = $user['must_change_password'];
+    } catch (Exception $e) {}
+}
+$current_script = $_SERVER['SCRIPT_NAME'] ?? '';
+if ($user && !empty($user['must_change_password'])
+    && !in_array($current_script, ['/settings.php', '/logout.php', '/login.php', '/install.php'], true)) {
+    header('Location: /settings.php?tab=password&force=1');
+    exit;
+}
+
 // 切换主题：?theme=xxx → 写入 cookie / 数据库，然后重定向去掉该参数
 if (isset($_GET['theme']) && valid_theme($_GET['theme'])) {
     set_theme($_GET['theme'], $user);
@@ -49,6 +77,8 @@ try {
         $unread_messages = (int)(Database::fetchOne(
             "SELECT COUNT(*) AS c FROM messages WHERE to_user=? AND is_read=0 AND to_deleted=0",
             [$user['user_id']])['c'] ?? 0);
+        // 夜猫子等时间类成就：在线即判定
+        check_time_achievements($user['user_id']);
     }
     // 背景：页面级覆盖（如章节背景）> 用户自定义 > 管理员配置的站点背景；遮罩颜色随主题变化
     $page_bg = isset($page_background_override) && trim((string)$page_background_override) !== ''
@@ -72,7 +102,7 @@ if ($theme === 'mdui3') {
 <title><?= ($title ?? '首页') . ' — ' . $site_name ?></title>
 <link rel="stylesheet" href="/css/fontawesome/css/all.min.css?v=6">
 <?php if ($theme === 'mdui3'): ?><link rel="stylesheet" href="/css/mdui/mdui.css?v=1"><?php endif; ?>
-<link rel="stylesheet" href="/css/style.css?v=18">
+<link rel="stylesheet" href="/css/style.css?v=22">
 <link rel="stylesheet" href="/css/themes.css?v=2">
 <link rel="stylesheet" href="/vendor/katex/css/katex.min.css">
 <script defer src="/vendor/katex/js/katex.min.js"></script>

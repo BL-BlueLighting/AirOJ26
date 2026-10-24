@@ -101,6 +101,15 @@ class Database
                 'theme'          => ["TEXT NOT NULL DEFAULT 'original'", "VARCHAR(20) NOT NULL DEFAULT 'original'"],
                 'name_split'     => ['INTEGER NOT NULL DEFAULT 1', 'TINYINT NOT NULL DEFAULT 1'],
                 'name_color'     => ["TEXT NOT NULL DEFAULT ''", "VARCHAR(20) NOT NULL DEFAULT ''"],
+                'title'          => ["TEXT NOT NULL DEFAULT ''", "VARCHAR(64) NOT NULL DEFAULT ''"],
+                'equipped_frame'    => ['INTEGER NOT NULL DEFAULT 0', 'INT UNSIGNED NOT NULL DEFAULT 0'],
+                'equipped_badge'    => ['INTEGER NOT NULL DEFAULT 0', 'INT UNSIGNED NOT NULL DEFAULT 0'],
+                'equipped_bbs_style'=> ['INTEGER NOT NULL DEFAULT 0', 'INT UNSIGNED NOT NULL DEFAULT 0'],
+                'equipped_bubble'   => ['INTEGER NOT NULL DEFAULT 0', 'INT UNSIGNED NOT NULL DEFAULT 0'],
+                'hydro_salt'          => ['TEXT', 'VARCHAR(64) NULL DEFAULT NULL'],
+                'hydro_hash'          => ['TEXT', 'VARCHAR(128) NULL DEFAULT NULL'],
+                'must_change_password'=> ['INTEGER NOT NULL DEFAULT 0', 'TINYINT NOT NULL DEFAULT 0'],
+                'avatar'              => ['TEXT', 'VARCHAR(255) NULL DEFAULT NULL'],
             ],
             'problem' => [
                 'tags'     => ['TEXT', 'LONGTEXT'],
@@ -109,11 +118,13 @@ class Database
             ],
             'teams' => [
                 'avatar'        => ['TEXT', 'VARCHAR(255) NULL'],
+                'verify_name'   => ["TEXT NOT NULL DEFAULT ''", "VARCHAR(100) NOT NULL DEFAULT ''"],
                 'verify_reason' => ['TEXT', 'TEXT'],
                 'verify_status' => ["TEXT NOT NULL DEFAULT 'none'", "VARCHAR(16) NOT NULL DEFAULT 'none'"],
             ],
             'submissions' => [
-                'contest_id' => ['INTEGER NOT NULL DEFAULT 0', 'INT NOT NULL DEFAULT 0'],
+                'contest_id'      => ['INTEGER NOT NULL DEFAULT 0', 'INT NOT NULL DEFAULT 0'],
+                'hydro_record_id' => ['TEXT', 'VARCHAR(32) NULL DEFAULT NULL'],
             ],
         ];
         $mysql = (DB_DRIVER === 'mysql');
@@ -142,6 +153,13 @@ class Database
     protected static function seedInitialData(PDO $pdo): void
     {
         try {
+            // 内置成就定义（与题库是否为空无关）
+            if (!(int)$pdo->query("SELECT COUNT(*) FROM achievements WHERE code='night_owl'")->fetchColumn()) {
+                $ignore = DB_DRIVER === 'mysql' ? 'INSERT IGNORE' : 'INSERT OR IGNORE';
+                $pdo->exec("$ignore INTO achievements (code,name,description,icon,color)
+                    VALUES ('night_owl','夜猫子','在 23:59 之后仍然在线（00:00 ~ 05:59）','fa-moon','#8b5cf6')");
+            }
+
             if ((int)$pdo->query("SELECT COUNT(*) FROM problem")->fetchColumn() > 0) return;
 
             $stmt = $pdo->prepare("INSERT INTO problem
@@ -202,6 +220,7 @@ class Database
                     result_json     TEXT,
                     user_id         TEXT    NOT NULL DEFAULT '',
                     contest_id      INTEGER NOT NULL DEFAULT 0,
+                    hydro_record_id TEXT,
                     created_at      TEXT    NOT NULL DEFAULT (datetime('now','localtime')),
                     updated_at      TEXT    NOT NULL DEFAULT (datetime('now','localtime'))
                 )
@@ -222,10 +241,14 @@ class Database
                     twofa_secret    TEXT,
                     twofa_enabled   INT  NOT NULL DEFAULT 0,
                     background      TEXT,
+                    avatar          TEXT,
                     fortune_drawn   TEXT,
                     theme           TEXT NOT NULL DEFAULT 'original',
                     name_split      INT  NOT NULL DEFAULT 1,
                     name_color      TEXT NOT NULL DEFAULT '',
+                    hydro_salt      TEXT,
+                    hydro_hash      TEXT,
+                    must_change_password INTEGER NOT NULL DEFAULT 0,
                     reg_time        TEXT NOT NULL DEFAULT (datetime('now','localtime'))
                 )
             ");
@@ -399,6 +422,55 @@ class Database
                     created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
                 )
             ");
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS achievements (
+                    achievement_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    code        TEXT NOT NULL UNIQUE,
+                    name        TEXT NOT NULL DEFAULT '',
+                    description TEXT,
+                    icon        TEXT NOT NULL DEFAULT 'fa-award',
+                    color       TEXT NOT NULL DEFAULT '#a855f7',
+                    created_at  TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+                )
+            ");
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS user_achievements (
+                    user_id        TEXT NOT NULL,
+                    achievement_id INTEGER NOT NULL,
+                    unlocked_at    TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+                    PRIMARY KEY (user_id, achievement_id)
+                )
+            ");
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS collectibles (
+                    collectible_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    type        TEXT NOT NULL DEFAULT 'badge',
+                    name        TEXT NOT NULL DEFAULT '',
+                    description TEXT,
+                    value       TEXT NOT NULL DEFAULT '',
+                    created_at  TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+                )
+            ");
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS user_collectibles (
+                    user_id        TEXT NOT NULL,
+                    collectible_id INTEGER NOT NULL,
+                    acquired_at    TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+                    PRIMARY KEY (user_id, collectible_id)
+                )
+            ");
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS title_applications (
+                    application_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id     TEXT NOT NULL DEFAULT '',
+                    title       TEXT NOT NULL DEFAULT '',
+                    reason      TEXT,
+                    status      TEXT NOT NULL DEFAULT 'pending',
+                    reviewed_by TEXT,
+                    created_at  TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+                    reviewed_at TEXT
+                )
+            ");
         }
     }
 
@@ -421,6 +493,7 @@ class Database
                 result_json     LONGTEXT,
                 user_id         VARCHAR(48)     NOT NULL DEFAULT '',
                 contest_id      INT             NOT NULL DEFAULT 0,
+                hydro_record_id VARCHAR(32)     NULL DEFAULT NULL,
                 created_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 INDEX idx_problem (problem_id),
@@ -445,10 +518,14 @@ class Database
                 twofa_secret    VARCHAR(64) NULL DEFAULT NULL,
                 twofa_enabled   TINYINT NOT NULL DEFAULT 0,
                 background      LONGTEXT NULL,
+                avatar          VARCHAR(255) NULL DEFAULT NULL,
                 fortune_drawn   VARCHAR(10) NULL DEFAULT NULL,
                 theme           VARCHAR(20) NOT NULL DEFAULT 'original',
                 name_split      TINYINT NOT NULL DEFAULT 1,
                 name_color      VARCHAR(20) NOT NULL DEFAULT '',
+                hydro_salt      VARCHAR(64) NULL DEFAULT NULL,
+                hydro_hash      VARCHAR(128) NULL DEFAULT NULL,
+                must_change_password TINYINT NOT NULL DEFAULT 0,
                 reg_time        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         ");
@@ -621,6 +698,55 @@ class Database
                 content    LONGTEXT,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 INDEX idx_topic (topic_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS achievements (
+                achievement_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                code        VARCHAR(64) NOT NULL UNIQUE,
+                name        VARCHAR(100) NOT NULL DEFAULT '',
+                description TEXT,
+                icon        VARCHAR(64) NOT NULL DEFAULT 'fa-award',
+                color       VARCHAR(20) NOT NULL DEFAULT '#a855f7',
+                created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS user_achievements (
+                user_id        VARCHAR(100) NOT NULL,
+                achievement_id INT UNSIGNED NOT NULL,
+                unlocked_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (user_id, achievement_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS collectibles (
+                collectible_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                type        VARCHAR(20) NOT NULL DEFAULT 'badge',
+                name        VARCHAR(100) NOT NULL DEFAULT '',
+                description TEXT,
+                value       TEXT NOT NULL,
+                created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS user_collectibles (
+                user_id        VARCHAR(100) NOT NULL,
+                collectible_id INT UNSIGNED NOT NULL,
+                acquired_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (user_id, collectible_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS title_applications (
+                application_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                user_id     VARCHAR(100) NOT NULL DEFAULT '',
+                title       VARCHAR(64) NOT NULL DEFAULT '',
+                reason      TEXT,
+                status      VARCHAR(16) NOT NULL DEFAULT 'pending',
+                reviewed_by VARCHAR(100) NULL DEFAULT NULL,
+                created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+                reviewed_at DATETIME NULL DEFAULT NULL
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         ");
     }

@@ -56,6 +56,35 @@ if (isset($_GET['clear_background'])) {
     $ok = '站点背景已清除';
 }
 
+// 结算页角色图
+if (isset($_POST['save_result_character'])) {
+    $ch = trim((string)($_POST['result_character'] ?? ''));
+    $up = save_background_upload($_FILES['character_file'] ?? [], 'result-character');
+    if (is_array($up) && $up[0] === null) {
+        $err = $up[1];
+    } else {
+        if (is_array($up)) $ch = $up[0];
+        if ($ch !== '' && !is_image_ref($ch)) {
+            $err = '角色图必须是图片地址或站内路径';
+        } else {
+            Database::setConfig('result_character', $ch);
+            $ok = $ch === '' ? '结算角色图已清除' : '结算角色图已更新';
+        }
+    }
+}
+if (isset($_GET['clear_result_character'])) {
+    Database::exec("DELETE FROM system_config WHERE key_name='result_character'");
+    foreach (glob($uploads . 'result-character.*') ?: [] as $f) @unlink($f);
+    $ok = '结算角色图已清除';
+}
+
+// 用户头像开关
+if (isset($_POST['save_avatar_settings'])) {
+    Database::setConfig('avatar_enabled', isset($_POST['avatar_enabled']) ? '1' : '0');
+    Database::setConfig('avatar_upload_enabled', isset($_POST['avatar_upload_enabled']) ? '1' : '0');
+    $ok = '头像设置已保存';
+}
+
 // 自定义页脚（版权行始终由 inc/footer.php 强制输出，不受此处影响）
 if (isset($_POST['save_footer'])) {
     Database::setConfig('site_footer', trim($_POST['site_footer'] ?? ''));
@@ -92,6 +121,9 @@ if (isset($_GET['clear_favicon'])) {
 $site_logo = Database::getConfig('site_logo');
 $site_favicon = Database::getConfig('site_favicon');
 $site_background = Database::getConfig('site_background');
+$result_character = Database::getConfig('result_character');
+$avatar_enabled = Database::getConfig('avatar_enabled') !== '0';
+$avatar_upload_enabled = Database::getConfig('avatar_upload_enabled') !== '0';
 $site_footer = Database::getConfig('site_footer');
 $turnstile_site = Database::getConfig('turnstile_site_key');
 $turnstile_secret = Database::getConfig('turnstile_secret_key');
@@ -163,6 +195,47 @@ require __DIR__ . '/_layout_top.php'; ?>
             <input type="text" name="site_background" class="form-input" value="<?=htmlspecialchars($site_background)?>"
                    placeholder="https://example.com/bg.jpg 或 data/uploads/site-bg.png 或 #1a1a2a"></div>
         <button type="submit" name="save_site_background" class="btn btn-primary">保存站点背景</button>
+    </form>
+</div>
+
+<div class="card" style="max-width:600px">
+    <h2><i class="fa-solid fa-user-astronaut"></i> 结算角色图</h2>
+    <p style="color:var(--text-secondary);font-size:13px;margin-bottom:12px">
+        显示在评测结果页右侧的 CLEAR 画面中。支持 PNG / JPG / GIF / WEBP，或填写图片地址。
+    </p>
+    <?php if ($result_character): ?>
+    <div style="margin-bottom:12px;padding:12px;background:var(--bg-secondary);border-radius:var(--radius);display:flex;align-items:center;gap:12px">
+        <?php $rc_src = preg_match('~^(https?://|data:image/)~i', $result_character) ? $result_character : '/' . ltrim($result_character, '/'); ?>
+        <img src="<?= htmlspecialchars($rc_src) ?>" style="max-height:72px;max-width:120px;object-fit:contain" alt="character">
+        <span style="font-size:12px;color:var(--text-muted);word-break:break-all"><?= htmlspecialchars($result_character) ?></span>
+        <a href="?clear_result_character=1" class="btn btn-danger btn-xs" style="margin-left:auto" onclick="return confirm('清除结算角色图？')">清除</a>
+    </div>
+    <?php endif; ?>
+    <form method="post" enctype="multipart/form-data">
+        <div class="form-group"><label>上传角色图（≤4MB）</label>
+            <input type="file" name="character_file" class="form-input" accept="image/png,image/jpeg,image/gif,image/webp"></div>
+        <div class="form-group"><label>或填写图片地址 / 站内路径</label>
+            <input type="text" name="result_character" class="form-input" value="<?= htmlspecialchars($result_character) ?>"
+                   placeholder="https://example.com/character.png 或 data/uploads/result-character.png"></div>
+        <button type="submit" name="save_result_character" class="btn btn-primary">保存角色图</button>
+    </form>
+</div>
+
+<div class="card" style="max-width:600px">
+    <h2><i class="fa-solid fa-user-circle"></i> 用户头像</h2>
+    <p style="color:var(--text-secondary);font-size:13px;margin-bottom:12px">
+        关闭自定义头像后，全站统一使用 Gravatar；关闭上传只影响用户上传，QQ / Gravatar 仍可使用。
+    </p>
+    <form method="post">
+        <label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;cursor:pointer">
+            <input type="checkbox" name="avatar_enabled" value="1" <?= $avatar_enabled ? 'checked' : '' ?>>
+            允许用户使用 QQ 头像 / 上传自定义头像
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;margin-bottom:14px;cursor:pointer">
+            <input type="checkbox" name="avatar_upload_enabled" value="1" <?= $avatar_upload_enabled ? 'checked' : '' ?>>
+            允许用户上传头像文件
+        </label>
+        <button type="submit" name="save_avatar_settings" class="btn btn-primary">保存头像设置</button>
     </form>
 </div>
 

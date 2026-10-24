@@ -87,7 +87,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $row) {
                     if ($isGroupMain) problem_sync_group_meta($groupMainId, $p_title, $tags, $author);
                     $ok = '题目已保存';
                 }
-                save_problem_difficulties((string)$id, $_POST);
+                $diffErr = save_problem_difficulties((string)$id, $_POST);
+                if ($diffErr !== null) {
+                    $err = $diffErr;
+                    $ok = '';
+                }
             }
         }
     }

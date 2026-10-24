@@ -94,7 +94,7 @@ require_once 'inc/functions.php';
     <h3 style="margin-top:16px">越级做题</h3>
     <p>作答超出当前颜色分级的题目时，题目页右上角会提示：</p>
     <blockquote style="margin:10px 0;padding:10px 16px;border-left:3px solid var(--accent-gold);background:var(--bg-secondary);color:var(--text-secondary);font-size:13px">
-        该题目也许超出您能力范围，若您能力范围支持做此题，在您通过本题后您的 Rating 将会提升到（当前等级的下一级最低积分 - 500）。
+        该题目也许超出您能力范围，若您能力范围支持做此题，在您通过本题后您的 Rating 将会提升到（题目所在颜色分级最低积分 - 500）。
     </blockquote>
     <p><span class="diff-tag diff-remaster">Re:MASTER</span> <strong>15 级题目不允许越级作答</strong>，低颜色分级用户无法提交。</p>
 </div>
@@ -115,7 +115,8 @@ K_eff = K_u × (1 + min(4, max(0, (Q_eff - R) / 4000)))
 R'   = clip(R + ΔR, 0, 20000)</div>
     <p style="margin-top:10px">
         <code>n_AC</code> 为用户已通过题数，<code>n_attempt</code> / <code>n_WA</code> 为本题此前的提交与错误次数。
-        越级通过题目时，Rating 最高只能提升到「下一颜色分级最低积分 - 500」。
+        越级通过题目时，Rating 最高只能提升到「题目所在颜色分级最低积分 - 500」。<br>
+        例如 MASTER 题目对应蓝色分级（9000 ~ 12000），越级通过后 Rating 最高到 8500。
     </p>
 
     <h3 style="margin-top:16px">名字颜色规则</h3>

@@ -28,7 +28,7 @@ require __DIR__ . '/../inc/header.php'; ?>
     <?php if ($ok): ?><div class="alert alert-success"><?=htmlspecialchars($ok)?></div><?php endif; ?>
     <form method="post">
         <div class="form-group"><label>用户名</label><input type="text" name="user_id" class="form-input" value="<?=htmlspecialchars($uid)?>" required></div>
-        <div class="form-group"><label>权限</label><select name="right_str" class="form-input"><option value="administrator">administrator（管理员）</option><option value="source_browser">source_browser（查看代码）</option><option value="contest_creator">contest_creator（创建比赛）</option></select></div>
+        <div class="form-group"><label>权限</label><select name="right_str" class="form-input"><option value="administrator">administrator（管理员）</option><option value="source_viewer">source_viewer（查看代码）</option><option value="contest_creator">contest_creator（创建比赛）</option></select></div>
         <button type="submit" class="btn btn-primary">授予权限</button>
     </form>
 </div>

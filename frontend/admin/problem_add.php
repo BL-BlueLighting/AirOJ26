@@ -69,9 +69,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $err === '') {
             }
         }
         if ($err === '') {
-            save_problem_difficulties((string)$new_id, $_POST);
-            header('Location: problem_edit.php?id=' . $new_id . '&created=1');
-            exit;
+            $diffErr = save_problem_difficulties((string)$new_id, $_POST);
+            if ($diffErr !== null) {
+                // 难度无效：回滚刚创建的题目与测试数据目录
+                Database::exec("DELETE FROM problem WHERE problem_id=?", [$new_id]);
+                Database::exec("DELETE FROM problem_difficulty WHERE problem_id=?", [$new_id]);
+                foreach (glob($data_dir . '/*') ?: [] as $f) @unlink($f);
+                @rmdir($data_dir);
+                $err = $diffErr;
+            } else {
+                header('Location: problem_edit.php?id=' . $new_id . '&created=1');
+                exit;
+            }
         }
     }
 }

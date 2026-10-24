@@ -60,6 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $replies = Database::fetchAll("SELECT * FROM bbs_reply WHERE topic_id=? ORDER BY reply_id ASC", [$id]);
 $problem = $topic['problem_id'] ? Database::fetchOne("SELECT title FROM problem WHERE problem_id=?", [(int)$topic['problem_id']]) : null;
+$topic_style = collectible_type_css($topic['user_id'], 'bbs_style');
 ?>
 <div class="page-header">
     <h1><i class="fa-solid fa-comments"></i> <?= htmlspecialchars($topic['title']) ?></h1>
@@ -68,7 +69,7 @@ $problem = $topic['problem_id'] ? Database::fetchOne("SELECT title FROM problem 
 
 <?php if ($err): ?><div class="alert alert-error"><?= htmlspecialchars($err) ?></div><?php endif; ?>
 
-<div class="card">
+<div class="card" style="<?= htmlspecialchars($topic_style, ENT_COMPAT) ?>">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px">
         <div style="font-size:13px;color:var(--text-secondary)">
             <?= user_role_html($topic['user_id']) ?> · <?= htmlspecialchars($topic['created_at']) ?>
@@ -88,8 +89,8 @@ $problem = $topic['problem_id'] ? Database::fetchOne("SELECT title FROM problem 
 <div class="section">
     <h2 class="section-title">回复（<?=count($replies)?>）</h2>
     <?php if ($replies): ?>
-    <?php foreach ($replies as $i => $r): ?>
-    <div class="card" id="r<?=$r['reply_id']?>">
+    <?php foreach ($replies as $i => $r): $reply_style = collectible_type_css($r['user_id'], 'bbs_style'); ?>
+    <div class="card" id="r<?=$r['reply_id']?>" style="<?= htmlspecialchars($reply_style, ENT_COMPAT) ?>">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
             <div style="font-size:13px;color:var(--text-secondary)">
                 <strong style="color:var(--text-muted)">#<?= $i + 1 ?></strong>

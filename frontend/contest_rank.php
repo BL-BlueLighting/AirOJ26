@@ -55,7 +55,7 @@ $status   = contest_status($contest);
 <?php $rank = 1; $me = $_SESSION['airoj_user']['user_id'] ?? null; foreach ($rows as $r): ?>
 <tr>
     <td style="font-weight:700;color:<?=$rank<=3?'var(--accent-gold)':'var(--text-muted)'?>"><?=$rank++?></td>
-    <td class="<?=$r['user_id']===$me?'me':''?>"><a href="/userinfo.php?uid=<?=urlencode($r['user_id'])?>"><?=user_role_html($r['user_id'], $r['nick'])?></a></td>
+    <td class="<?=$r['user_id']===$me?'me':''?>"><a href="/profile.php?uid=<?=urlencode($r['user_id'])?>"><?=user_role_html($r['user_id'], $r['nick'])?></a></td>
     <td style="font-weight:700;color:var(--green)"><?=$r['solved']?></td>
     <td style="font-weight:600;color:var(--accent-gold)"><?= $isOI ? $r['total'] : $r['penalty'] ?></td>
     <?php foreach ($problems as $p):

@@ -95,7 +95,7 @@ LANGUAGE_CONFIGS = {
         "run_command": "/usr/bin/java -Xmx256m -XX:CompressedClassSpaceSize=128m -cp {exe_dir} Main",
         "compile_options": {"memory_limit_check_only": 1},
         "run_options": {"memory_limit_check_only": 1},
-        "seccomp_rule": "general",
+        "seccomp_rule": None,
         "src_name": "Main.java",
         "exe_name": "Main.class",
     },

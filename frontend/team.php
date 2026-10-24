@@ -66,6 +66,7 @@ function team_badge(array $t, int $size = 38): string
         <div style="flex:1;min-width:0">
             <strong><?=htmlspecialchars($t['name'])?></strong>
             <?php if ($t['verified']): ?><i class="fa-solid fa-circle-check" style="color:var(--green)" title="已认证"></i><?php endif; ?>
+            <?php if (!empty($t['verify_name'])): ?><span class="tag tag-green" style="font-size:10px"><?=htmlspecialchars($t['verify_name'])?></span><?php endif; ?>
             <span style="color:var(--text-muted);font-size:12px">(<?=$t['role'] === 'owner' ? '所有者' : '成员'?>)</span>
         </div>
         <a href="team_manage.php?id=<?=$t['team_id']?>" class="btn btn-primary btn-sm">管理</a>
@@ -96,6 +97,7 @@ function team_badge(array $t, int $size = 38): string
 <td>
     <strong><?=htmlspecialchars($t['name'])?></strong>
     <?php if ($t['verified']): ?><i class="fa-solid fa-circle-check" style="color:var(--green)" title="已认证"></i><?php endif; ?>
+    <?php if (!empty($t['verify_name'])): ?><span class="tag tag-green" style="font-size:10px"><?=htmlspecialchars($t['verify_name'])?></span><?php endif; ?>
     <br><span style="font-size:12px;color:var(--text-muted)"><?=htmlspecialchars(mb_substr($t['description'] ?? '', 0, 90))?></span>
 </td>
 <td><?=$t['member_count']?></td>

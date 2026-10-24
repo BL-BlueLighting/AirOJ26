@@ -141,7 +141,7 @@ if ($user) {
                 <?php $i=1; foreach ($rank as $u): ?>
                 <tr>
                     <td style="font-weight:700;color:<?=$i<=3?'var(--accent-gold)':'var(--text-muted)'?>"><?=$i++?></td>
-                    <td><a href="/userinfo.php?uid=<?=urlencode($u['user_id'])?>"><?=user_role_html($u['user_id'], $u['nick']?:$u['user_id'])?></a></td>
+                    <td><a href="/profile.php?uid=<?=urlencode($u['user_id'])?>"><?=user_role_html($u['user_id'], $u['nick']?:$u['user_id'])?></a></td>
                     <td style="font-weight:600;color:var(--green)"><?=$u['solved_count']??0?></td>
                     <td style="font-weight:600;color:var(--accent-gold)"><?=round($u['rating']??1500)?></td>
                 </tr>

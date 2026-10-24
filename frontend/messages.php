@@ -89,6 +89,7 @@ if ($id) {
         $view['is_read'] = 1;
     }
 }
+$bubble_style = $view ? collectible_type_css($view['from_user'], 'bubble') : '';
 
 $page  = max(1, intval($_GET['page'] ?? 1));
 $limit = 20;
@@ -134,7 +135,7 @@ if ($view):
         </div>
         <div style="color:var(--text-muted)"><?= htmlspecialchars($view['created_at']) ?></div>
     </div>
-    <div class="mdui-prose" style="font-size:14px;line-height:1.8"><?= $pd->text((string)$view['content']) ?></div>
+    <div class="mdui-prose msg-bubble" style="font-size:14px;line-height:1.8;<?= htmlspecialchars($bubble_style, ENT_COMPAT) ?>"><?= $pd->text((string)$view['content']) ?></div>
 </div>
 
 <div class="flex">

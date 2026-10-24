@@ -34,8 +34,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $totp = new TOTP($row['twofa_secret']);
                 if ($totp->verify($twofa_code)) {
                     unset($_SESSION['twofa_uid']);
-                    $_SESSION['airoj_user'] = $row;
-                    header('Location: /index.php'); exit;
+                    $sessionRow = $row;
+                    unset($sessionRow['hydro_salt'], $sessionRow['hydro_hash']);
+                    $_SESSION['airoj_user'] = $sessionRow;
+                    header('Location: ' . (!empty($row['must_change_password'])
+                        ? '/settings.php?tab=password&force=1' : '/index.php'));
+                    exit;
                 }
                 $err = '验证码错误，请重试';
             } else { $err = '2FA 配置异常'; }
@@ -47,14 +51,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $err = '人机验证失败，请重试';
             } else {
                 $row = Database::fetchOne("SELECT * FROM users WHERE user_id=?", [$uid]);
-                if ($row && password_verify($pw, $row['password'])) {
+                if ($row && verify_login_password($row, $pw)) {
+                    // Hydro 迁移账号：无论用哪个密码登录，都要先改密码
+                    if (verify_hydro_password($row, $pw) || !empty($row['must_change_password'])) {
+                        if (empty($row['must_change_password'])) {
+                            Database::exec("UPDATE users SET must_change_password=1 WHERE user_id=?", [$uid]);
+                        }
+                        $row['must_change_password'] = 1;
+                    }
                     if ($row['twofa_enabled']) {
                         $_SESSION['twofa_uid'] = $uid;
                         $show_2fa = true;
                         $temp_uid = $uid;
                     } else {
-                        $_SESSION['airoj_user'] = $row;
-                        header('Location: /index.php'); exit;
+                        // 不要把 Hydro 迁移哈希带进 session
+                        $sessionRow = $row;
+                        unset($sessionRow['hydro_salt'], $sessionRow['hydro_hash']);
+                        $_SESSION['airoj_user'] = $sessionRow;
+                        header('Location: ' . (!empty($row['must_change_password'])
+                            ? '/settings.php?tab=password&force=1' : '/index.php'));
+                        exit;
                     }
                 } else { $err = '用户名或密码错误'; }
             }

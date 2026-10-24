@@ -54,6 +54,15 @@ $admin_groups = [
             'team_list' => ['/admin/team_list.php', '团队管理'],
         ],
     ],
+    'growth' => [
+        'title' => '养成', 'desc' => '成就、收藏品与称号', 'icon' => 'fa-trophy',
+        'landing' => '/admin/achievements.php',
+        'items' => [
+            'achievement_list' => ['/admin/achievements.php', '成就管理'],
+            'collectible_list' => ['/admin/collectibles.php', '收藏品管理'],
+            'title_review'     => ['/admin/title_review.php', '称号审核'],
+        ],
+    ],
     'news' => [
         'title' => '公告', 'desc' => '公告与滚动通知', 'icon' => 'fa-bullhorn',
         'landing' => '/admin/index.php?panel=news_list',

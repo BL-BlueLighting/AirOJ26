@@ -13,8 +13,8 @@ putenv('TZ=Asia/Shanghai');
 
 define('DB_DRIVER', getenv('DB_DRIVER') ?: 'sqlite');     // sqlite | mysql
 
-// SQLite
-define('DB_SQLITE_PATH', __DIR__ . '/../data/airoj.db');
+// SQLite（测试时可用 DB_SQLITE_PATH 环境变量指向临时库）
+define('DB_SQLITE_PATH', getenv('DB_SQLITE_PATH') ?: __DIR__ . '/../data/airoj.db');
 
 // MySQL (仅在 DB_DRIVER=mysql 时需要)
 define('DB_HOST', getenv('DB_HOST') ?: '127.0.0.1');
