@@ -7,6 +7,7 @@ $title = '站内信';
 require_once 'include/config.php';
 require_once 'include/db.php';
 require_once 'include/functions.php';
+require_once 'include/mailer.php';
 require_once 'include/Parsedown.php';
 if (session_status() === PHP_SESSION_NONE) @session_start();
 if (!isset($_SESSION['airoj_user'])) { header('Location: /login.php'); exit; }
@@ -39,8 +40,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (mb_strlen($subject) > 100) {
             $err = '标题不能超过 100 个字符';
         } else {
-            Database::insert("INSERT INTO messages (from_user,to_user,subject,content) VALUES (?,?,?,?)",
+            $mid = Database::insert("INSERT INTO messages (from_user,to_user,subject,content) VALUES (?,?,?,?)",
                 [$uid, $to, $subject, $content]);
+
+            // 站内信自动抄送到收件人邮箱（失败不影响站内信本身）
+            if (message_email_notify_enabled()) {
+                $recipient = Database::fetchOne(
+                    "SELECT user_id,nick,email,email_verified FROM users WHERE user_id=?",
+                    [$to]
+                );
+                $sender = Database::fetchOne("SELECT user_id,nick FROM users WHERE user_id=?", [$uid]);
+                if ($recipient && $sender) {
+                    [$sent, $mailErr] = send_message_email($recipient, $sender, [
+                        'id' => $mid,
+                        'subject' => $subject,
+                        'content' => $content,
+                    ]);
+                    if (!$sent && $mailErr !== '') {
+                        error_log('[AirOJ mail] message notify failed: ' . $mailErr);
+                    }
+                }
+            }
+
             msg_redirect('/messages.php?box=sent', '站内信已发送');
         }
     }

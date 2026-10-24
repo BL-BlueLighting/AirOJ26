@@ -3,6 +3,7 @@ $title = '设置';
 require_once 'include/config.php';
 require_once 'include/db.php';
 require_once 'include/functions.php';
+require_once 'include/mailer.php';
 require_once 'include/TOTP.php';
 require_once 'include/Parsedown.php';
 
@@ -185,19 +186,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $err = '邮箱格式不正确';
         } else {
-            Database::exec("UPDATE users SET nick=?, email=?, school=? WHERE user_id=?", [$nick, $email, $school, $uid]);
-            $_SESSION['airoj_user']['nick']   = $nick;
-            $_SESSION['airoj_user']['email']  = $email;
-            $_SESSION['airoj_user']['school'] = $school;
+            [$emailOk, $emailMsg] = update_user_email($uid, $email);
+            if (!$emailOk) {
+                $err = $emailMsg;
+            } else {
+                Database::exec("UPDATE users SET nick=?, school=? WHERE user_id=?", [$nick, $school, $uid]);
+                $_SESSION['airoj_user']['nick']   = $nick;
+                $_SESSION['airoj_user']['email']  = $email;
+                $_SESSION['airoj_user']['school'] = $school;
 
-            if (array_key_exists('name_color', $_POST)) {
-                $c = (string)$_POST['name_color'];
-                if (!valid_name_color($c)) $c = '';
-                if (!$is_manager && in_array($c, ['role', 'split'], true)) $c = '';
-                Database::exec("UPDATE users SET name_color=? WHERE user_id=?", [$c, $uid]);
-                $_SESSION['airoj_user']['name_color'] = $c;
+                if (array_key_exists('name_color', $_POST)) {
+                    $c = (string)$_POST['name_color'];
+                    if (!valid_name_color($c)) $c = '';
+                    if (!$is_manager && in_array($c, ['role', 'split'], true)) $c = '';
+                    Database::exec("UPDATE users SET name_color=? WHERE user_id=?", [$c, $uid]);
+                    $_SESSION['airoj_user']['name_color'] = $c;
+                }
+                settings_redirect('profile', $emailMsg === '邮箱未变更' ? '个人资料已更新' : $emailMsg);
             }
-            settings_redirect('profile', '个人资料已更新');
         }
     }
     // 修改密码：先验证原密码；若开启 2FA，再验证动态验证码

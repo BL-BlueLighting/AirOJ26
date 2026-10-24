@@ -40,6 +40,7 @@
 </div>
 
 <div class="card" style="padding:32px">
+    <?php if (!empty($notice)): ?><div class="alert alert-success"><?= htmlspecialchars($notice) ?></div><?php endif; ?>
     <?php if ($show_2fa): ?>
     <h1 style="text-align:center;font-size:20px;margin-bottom:8px"><i class="fa-solid fa-lock"></i> 二步验证</h1>
     <p style="text-align:center;color:var(--text-secondary);font-size:13px;margin-bottom:8px">
@@ -111,6 +112,11 @@
     <?php else: ?>
     <h1 style="text-align:center;font-size:20px;margin-bottom:24px">登录</h1>
     <?php if ($err): ?><div class="alert alert-error"><?= htmlspecialchars($err) ?></div><?php endif; ?>
+    <?php if (!empty($email_unverified)): ?>
+    <p style="text-align:center;font-size:13px;margin:-4px 0 14px">
+        <a href="/verify_email.php?resend=1">重新发送验证邮件</a>
+    </p>
+    <?php endif; ?>
     <form method="post">
         <div class="form-group"><label>用户名</label><input type="text" name="user_id" class="form-input" required autocomplete="username"></div>
         <div class="form-group"><label>密码</label><input type="password" name="password" class="form-input" required autocomplete="current-password"></div>
@@ -119,8 +125,10 @@
     </form>
     <div style="text-align:center;margin-top:16px;font-size:13px">
         <a href="/register.php">注册账号</a>
+        <?php if (password_reset_enabled()): ?>
         <span style="margin:0 8px;color:var(--border)">·</span>
         <a href="/lostpassword.php">忘记密码</a>
+        <?php endif; ?>
     </div>
     <?php endif; ?>
 </div>

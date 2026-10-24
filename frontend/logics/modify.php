@@ -3,6 +3,7 @@ $title = '修改资料';
 require_once 'include/config.php';
 require_once 'include/db.php';
 require_once 'include/functions.php';
+require_once 'include/mailer.php';
 require_once 'include/TOTP.php';
 if (session_status() === PHP_SESSION_NONE) @session_start();
 if (!isset($_SESSION['airoj_user'])) { header('Location: login.php'); exit; }
@@ -21,8 +22,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $ok = '昵称已更新';
     }
     if ($email) {
-        Database::exec("UPDATE users SET email=? WHERE user_id=?", [$email, $uid]);
-        $ok = '邮箱已更新';
+        [$emailOk, $emailMsg] = update_user_email($uid, $email);
+        if (!$emailOk) {
+            $err = $emailMsg;
+        } else {
+            $_SESSION['airoj_user']['email'] = $email;
+            $ok = $emailMsg;
+        }
     }
     if ($pw_old && $pw_new) {
         $row = Database::fetchOne("SELECT password, twofa_enabled, twofa_secret, hydro_salt, hydro_hash FROM users WHERE user_id=?", [$uid]);

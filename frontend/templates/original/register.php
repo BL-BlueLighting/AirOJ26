@@ -22,6 +22,9 @@
 <div class="card" style="padding:32px">
     <h1 style="text-align:center;font-size:20px;margin-bottom:24px">注册</h1>
     <?php if ($err): ?><div class="alert alert-error"><?= htmlspecialchars($err) ?></div><?php endif; ?>
+    <?php if (email_verification_enabled()): ?>
+    <div class="alert alert-info" style="font-size:12px">注册后需要点击邮件中的验证链接完成邮箱验证，验证通过后才能登录。</div>
+    <?php endif; ?>
     <form method="post">
         <div class="form-group"><label>用户名</label><input type="text" name="user_id" class="form-input" required></div>
         <div class="form-group"><label>密码</label><input type="password" name="password" class="form-input" required></div>

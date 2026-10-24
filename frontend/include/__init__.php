@@ -28,6 +28,7 @@ $site_name = 'AirOJ';
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/mailer.php';
 require_once __DIR__ . '/render.php';
 
 // 每次请求从数据库刷新登录用户资料，避免 session 中保留旧的头像 / 背景 / 签名等
@@ -51,7 +52,10 @@ if ($user && !array_key_exists('must_change_password', $user)) {
     } catch (Exception $e) {}
 }
 if ($user && !empty($user['must_change_password'])
-    && !in_array($current_script, ['/settings.php', '/logout.php', '/login.php', '/install.php'], true)) {
+    && !in_array($current_script, [
+        '/settings.php', '/logout.php', '/login.php', '/install.php',
+        '/verify_email.php', '/lostpassword.php', '/reset_password.php',
+    ], true)) {
     header('Location: /settings.php?tab=password&force=1');
     exit;
 }
