@@ -1,13 +1,13 @@
 <?php
 $title = '权限管理';
-require_once __DIR__ . '/../inc/config.php';
-require_once __DIR__ . '/../inc/db.php';
+require_once __DIR__ . '/../include/config.php';
+require_once __DIR__ . '/../include/db.php';
 if (session_status() === PHP_SESSION_NONE) @session_start();
 $is_admin = Database::fetchOne("SELECT * FROM privilege WHERE user_id=? AND right_str='administrator'", [$_SESSION['airoj_user']['user_id'] ?? '']);
 if (!isset($_SESSION['airoj_user']) || !$is_admin) { header('Location: ../login.php'); exit; }
 
 $privileges = Database::fetchAll("SELECT p.*, u.nick FROM privilege p LEFT JOIN users u ON p.user_id=u.user_id ORDER BY p.right_str, p.user_id");
-require __DIR__ . '/../inc/header.php'; ?>
+require __DIR__ . '/../include/header.php'; ?>
 <div class="page-header"><h1><i class="fa-solid fa-key"></i> 权限管理</h1><a href="privilege_add.php" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> 添加权限</a></div>
 <div class="card" style="padding:0"><div class="table-wrap"><table>
 <thead><tr><th>用户</th><th>权限</th><th>操作</th></tr></thead>
@@ -21,4 +21,4 @@ require __DIR__ . '/../inc/header.php'; ?>
 </tr>
 <?php endforeach; endif; ?>
 </tbody></table></div></div>
-<?php require __DIR__ . '/../inc/footer.php'; ?>
+<?php require __DIR__ . '/../include/footer.php'; ?>

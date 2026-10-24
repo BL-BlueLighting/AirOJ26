@@ -1,8 +1,8 @@
 <?php
 $title = '编辑题目';
-require_once __DIR__ . '/../inc/config.php';
-require_once __DIR__ . '/../inc/db.php';
-require_once __DIR__ . '/../inc/functions.php';
+require_once __DIR__ . '/../include/config.php';
+require_once __DIR__ . '/../include/db.php';
+require_once __DIR__ . '/../include/functions.php';
 if (session_status() === PHP_SESSION_NONE) @session_start();
 $is_admin = Database::fetchOne("SELECT * FROM privilege WHERE user_id=? AND right_str='administrator'", [$_SESSION['airoj_user']['user_id'] ?? '']);
 if (!isset($_SESSION['airoj_user']) || !$is_admin) { header('Location: ../login.php'); exit; }
@@ -99,9 +99,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $row) {
 
 $row = Database::fetchOne("SELECT * FROM problem WHERE problem_id=?", [$id]);
 if (!$row) {
-    require __DIR__ . '/../inc/header.php';
+    require __DIR__ . '/../include/header.php';
     echo '<div class="empty"><div class="icon"><i class="fa-solid fa-file-circle-question"></i></div><p>题目不存在</p></div>';
-    require __DIR__ . '/../inc/footer.php';
+    require __DIR__ . '/../include/footer.php';
     exit;
 }
 $isMember = problem_is_group_member($row);

@@ -1,8 +1,8 @@
 <?php
 $title = '系统设置';
-require_once __DIR__ . '/../inc/config.php';
-require_once __DIR__ . '/../inc/db.php';
-require_once __DIR__ . '/../inc/functions.php';
+require_once __DIR__ . '/../include/config.php';
+require_once __DIR__ . '/../include/db.php';
+require_once __DIR__ . '/../include/functions.php';
 if (session_status() === PHP_SESSION_NONE) @session_start();
 $is_admin = Database::fetchOne("SELECT * FROM privilege WHERE user_id=? AND right_str='administrator'", [$_SESSION['airoj_user']['user_id'] ?? '']);
 if (!isset($_SESSION['airoj_user']) || !$is_admin) { header('Location: /login.php'); exit; }
@@ -85,7 +85,7 @@ if (isset($_POST['save_avatar_settings'])) {
     $ok = '头像设置已保存';
 }
 
-// 自定义页脚（版权行始终由 inc/footer.php 强制输出，不受此处影响）
+// 自定义页脚（版权行始终由 include/footer.php 强制输出，不受此处影响）
 if (isset($_POST['save_footer'])) {
     Database::setConfig('site_footer', trim($_POST['site_footer'] ?? ''));
     $ok = '页脚已更新';

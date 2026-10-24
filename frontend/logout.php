@@ -1,5 +1,3 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) @session_start();
-$_SESSION = [];
-session_destroy();
-header('Location: index.php');
+require __DIR__ . '/include/__init__.php';
+require __DIR__ . '/logics/logout.php';

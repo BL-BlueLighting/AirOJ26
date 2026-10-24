@@ -675,6 +675,7 @@ body.has-bg .pw-toolbar { background: var(--overlay-card); backdrop-filter: blur
 .theme-swatch::after { content: ''; position: absolute; left: 8px; right: 8px; top: 22px; bottom: 8px; border-radius: 4px; background: var(--sw-card); }
 .theme-swatch-original { background: #0d0d0d; --sw-bar: #4da6ff; --sw-card: #1a1a1a; }
 .theme-swatch-mdui3 { background: #0a0f0c; --sw-bar: #35d07f; --sw-card: #131b16; }
+.theme-swatch-mdui_fake { background: #0a0f0c; --sw-bar: #4ade80; --sw-card: #131b16; }
 .theme-swatch-bshark { background: #fafbfa; --sw-bar: #2185d0; --sw-card: #ffffff; }
 
 /* ── 用户展示：姓名框 / 称号 / 徽章 ── */

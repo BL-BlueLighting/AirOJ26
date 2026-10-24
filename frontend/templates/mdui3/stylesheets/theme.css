@@ -1,0 +1,373 @@
+/* ── MDUI 3 主题：官方 mdui@2.1.5 组件，黑绿配色 ── */
+@font-face {
+    font-family: 'Material Icons';
+    font-style: normal;
+    font-weight: 400;
+    font-display: block;
+    src: url('/templates/mdui3/stylesheets/icons/material-icons/MaterialIcons-Regular.woff2') format('woff2'),
+         url('/templates/mdui3/stylesheets/icons/material-icons/MaterialIcons-Regular.woff') format('woff');
+}
+
+/* MDUI 默认亮色主题会把根元素刷成白色，整页滚动到边缘时会露白 */
+html {
+    background-color: #0a0f0c;
+}
+
+body.theme-mdui3 {
+    color-scheme: dark;
+
+    /* MDUI 3 暗色调色板：黑绿 */
+    --mdui-color-primary-dark: 53, 208, 127;
+    --mdui-color-on-primary-dark: 0, 32, 16;
+    --mdui-color-primary-container-dark: 0, 82, 42;
+    --mdui-color-on-primary-container-dark: 153, 247, 184;
+    --mdui-color-inverse-primary-dark: 0, 106, 56;
+    --mdui-color-secondary-dark: 176, 204, 187;
+    --mdui-color-on-secondary-dark: 27, 53, 37;
+    --mdui-color-secondary-container-dark: 49, 76, 59;
+    --mdui-color-on-secondary-container-dark: 204, 232, 214;
+    --mdui-color-tertiary-dark: 255, 213, 79;
+    --mdui-color-on-tertiary-dark: 60, 45, 0;
+    --mdui-color-tertiary-container-dark: 89, 68, 0;
+    --mdui-color-on-tertiary-container-dark: 255, 229, 143;
+    --mdui-color-surface-dark: 10, 15, 12;
+    --mdui-color-surface-dim-dark: 10, 15, 12;
+    --mdui-color-surface-bright-dark: 53, 63, 56;
+    --mdui-color-surface-container-lowest-dark: 5, 9, 6;
+    --mdui-color-surface-container-low-dark: 14, 21, 17;
+    --mdui-color-surface-container-dark: 19, 27, 22;
+    --mdui-color-surface-container-high-dark: 28, 38, 32;
+    --mdui-color-surface-container-highest-dark: 38, 50, 43;
+    --mdui-color-surface-variant-dark: 66, 81, 72;
+    --mdui-color-on-surface-dark: 226, 238, 230;
+    --mdui-color-on-surface-variant-dark: 190, 205, 196;
+    --mdui-color-inverse-surface-dark: 226, 238, 230;
+    --mdui-color-inverse-on-surface-dark: 27, 31, 28;
+    --mdui-color-background-dark: 10, 15, 12;
+    --mdui-color-on-background-dark: 226, 238, 230;
+    --mdui-color-outline-dark: 138, 152, 143;
+    --mdui-color-outline-variant-dark: 62, 75, 68;
+    --mdui-color-error-dark: 255, 180, 171;
+    --mdui-color-on-error-dark: 104, 0, 6;
+    --mdui-color-error-container-dark: 147, 0, 10;
+    --mdui-color-on-error-container-dark: 255, 218, 214;
+    --mdui-color-shadow-dark: 0, 0, 0;
+    --mdui-color-scrim-dark: 0, 0, 0;
+
+    /* 直接令牌：登录 / 注册等独立页面没有 mdui-theme-dark 时也能生效 */
+    --mdui-color-primary: 53, 208, 127;
+    --mdui-color-on-primary: 0, 32, 16;
+    --mdui-color-primary-container: 0, 82, 42;
+    --mdui-color-on-primary-container: 153, 247, 184;
+    --mdui-color-secondary: 176, 204, 187;
+    --mdui-color-on-secondary: 27, 53, 37;
+    --mdui-color-secondary-container: 49, 76, 59;
+    --mdui-color-on-secondary-container: 204, 232, 214;
+    --mdui-color-tertiary: 255, 213, 79;
+    --mdui-color-on-tertiary: 60, 45, 0;
+    --mdui-color-tertiary-container: 89, 68, 0;
+    --mdui-color-on-tertiary-container: 255, 229, 143;
+    --mdui-color-surface: 10, 15, 12;
+    --mdui-color-surface-dim: 10, 15, 12;
+    --mdui-color-surface-bright: 53, 63, 56;
+    --mdui-color-surface-container-lowest: 5, 9, 6;
+    --mdui-color-surface-container-low: 14, 21, 17;
+    --mdui-color-surface-container: 19, 27, 22;
+    --mdui-color-surface-container-high: 28, 38, 32;
+    --mdui-color-surface-container-highest: 38, 50, 43;
+    --mdui-color-surface-variant: 66, 81, 72;
+    --mdui-color-on-surface: 226, 238, 230;
+    --mdui-color-on-surface-variant: 190, 205, 196;
+    --mdui-color-inverse-surface: 226, 238, 230;
+    --mdui-color-inverse-on-surface: 27, 31, 28;
+    --mdui-color-background: 10, 15, 12;
+    --mdui-color-on-background: 226, 238, 230;
+    --mdui-color-outline: 138, 152, 143;
+    --mdui-color-outline-variant: 62, 75, 68;
+    --mdui-color-error: 255, 180, 171;
+    --mdui-color-on-error: 104, 0, 6;
+    --mdui-color-error-container: 147, 0, 10;
+    --mdui-color-on-error-container: 255, 218, 214;
+    --mdui-color-shadow: 0, 0, 0;
+    --mdui-color-scrim: 0, 0, 0;
+
+    /* AirOJ 业务组件变量 */
+    --bg-primary: #0a0f0c;
+    --bg-secondary: #0e1511;
+    --bg-card: #131b16;
+    --bg-hover: #1a2921;
+    --border: #22352b;
+    --border-light: #2d463a;
+    --text-primary: #e6f2eb;
+    --text-secondary: #a9c2b3;
+    --text-muted: #6f8a7b;
+    --accent: #35d07f;
+    --accent-hover: #2bb96f;
+    --accent-gold: #ffd54f;
+    --green: #35d07f;
+    --red: #ff8a80;
+    --yellow: #ffd54f;
+    --green-bg: #123222;
+    --red-bg: #3a1512;
+    --yellow-bg: #332a10;
+    --gold-bg: #332a10;
+    --info-bg: #10251d;
+    --accent-bg: rgba(53, 208, 127, .14);
+    --accent-border: rgba(53, 208, 127, .4);
+    --overlay-header: rgba(10, 15, 12, .9);
+    --overlay-card: rgba(18, 27, 22, .86);
+    --radius: 8px;
+    --radius-lg: 16px;
+    background-color: #0a0f0c;
+    color: #e6f2eb;
+    font-family: Roboto, "Noto Sans SC", "Microsoft YaHei", sans-serif;
+}
+
+/* ── MDUI 布局：侧栏铺满视口，内容不被顶栏遮挡 ── */
+body.theme-mdui3 mdui-layout {
+    min-height: 100vh;
+}
+body.theme-mdui3 mdui-top-app-bar {
+    /* 旧主题的全局 reset 会清掉 MDUI 宿主内边距，这里恢复顶栏的 12px 8px */
+    padding: 12px 8px;
+    background-color: rgb(var(--mdui-color-surface-container));
+    color: rgb(var(--mdui-color-on-surface));
+}
+body.theme-mdui3 mdui-navigation-drawer {
+    background-color: rgb(var(--mdui-color-surface-container-low));
+}
+body.theme-mdui3 mdui-navigation-drawer::part(panel) {
+    background-color: rgb(var(--mdui-color-surface-container-low));
+}
+body.theme-mdui3 mdui-list-item.active {
+    color: rgb(var(--mdui-color-primary));
+}
+body.theme-mdui3 .mdui-bar-spacer {
+    flex-grow: 1;
+}
+
+/* 顶栏标题 / logo：宿主的 40px 行高会让 logo 贴顶，这里显式居中 */
+body.theme-mdui3 mdui-top-app-bar-title {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    height: 2.5rem;
+    line-height: 1;
+}
+body.theme-mdui3 .mdui-brand {
+    display: inline-flex;
+    align-items: center;
+    height: 100%;
+    vertical-align: middle;
+    border-radius: 12px;
+    color: inherit;
+    text-decoration: none;
+}
+body.theme-mdui3 .mdui-brand img {
+    display: block;
+    height: 28px;
+    width: auto;
+    max-width: 100%;
+    border-radius: 12px;
+}
+body.theme-mdui3 .mdui-brand span {
+    font-size: 20px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+body.theme-mdui3 .mdui-brand span b {
+    color: rgb(var(--mdui-color-primary));
+    font-weight: 700;
+}
+
+body.theme-mdui3 .mdui-msg-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+body.theme-mdui3 .msg-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: rgb(var(--mdui-color-error));
+    color: rgb(var(--mdui-color-on-error));
+    font-size: 10px;
+    line-height: 16px;
+    text-align: center;
+    font-weight: 700;
+}
+
+/* 原生主题选择器：桌面放顶栏，小屏放进侧栏 */
+body.theme-mdui3 .theme-select {
+    align-self: center;
+    margin-right: 8px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid rgb(var(--mdui-color-outline-variant));
+    background: rgb(var(--mdui-color-surface-container-high));
+    color: rgb(var(--mdui-color-on-surface));
+    font-size: 12px;
+}
+body.theme-mdui3 .drawer-theme {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px 20px;
+    color: rgb(var(--mdui-color-on-surface-variant));
+    font-size: 13px;
+}
+body.theme-mdui3 .drawer-theme .theme-select {
+    margin-right: 0;
+}
+
+/* ── 页面容器与页脚 ── */
+body.theme-mdui3 .mdui-container {
+    padding: 18px 16px 42px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+body.theme-mdui3 .mdui-footer {
+    margin-top: 24px;
+    border-top: 1px solid rgb(var(--mdui-color-outline-variant));
+    color: rgb(var(--mdui-color-outline));
+    font-size: 12px;
+}
+body.theme-mdui3 .mdui-footer .mdui-container {
+    padding: 20px 16px 28px;
+}
+body.theme-mdui3 .mdui-footer .footer-custom {
+    margin-bottom: 12px;
+    color: rgb(var(--mdui-color-on-surface-variant));
+}
+body.theme-mdui3 .mdui-footer .footer-copyright {
+    font-size: 12px;
+}
+
+/* 题目页工作区：撑满顶栏以下的空间（旧 CSS 依赖 .container 的高度） */
+body.theme-mdui3.pw-page mdui-layout-main > .mdui-container {
+    height: calc(100vh - 64px);
+    max-width: 1800px;
+    min-height: 480px;
+    padding: 12px 16px;
+}
+body.theme-mdui3.pw-page.pw-focus mdui-layout-main > .mdui-container {
+    height: 100vh;
+    max-width: none;
+    padding: 0;
+}
+@media (max-width: 900px) {
+    body.theme-mdui3.pw-page mdui-layout-main > .mdui-container {
+        height: auto;
+    }
+}
+
+/* ── AirOJ 业务组件 → MDUI 3 表面 / 描边 / 圆角 ── */
+body.theme-mdui3 .card {
+    background: rgb(var(--mdui-color-surface-container));
+    border: 1px solid rgb(var(--mdui-color-outline-variant));
+    border-radius: var(--mdui-shape-corner-large);
+    box-shadow: var(--mdui-elevation-level1);
+    color: rgb(var(--mdui-color-on-surface));
+}
+body.theme-mdui3 .card h2 {
+    border-bottom-color: rgb(var(--mdui-color-outline-variant));
+}
+body.theme-mdui3 .page-header h1 {
+    font-weight: 400;
+    letter-spacing: .01em;
+}
+body.theme-mdui3 .btn {
+    border-radius: 999px;
+    font-weight: 500;
+}
+body.theme-mdui3 .btn-primary {
+    background: rgb(var(--mdui-color-primary));
+    color: rgb(var(--mdui-color-on-primary));
+}
+body.theme-mdui3 .btn-primary:hover {
+    background: rgb(var(--mdui-color-primary));
+    filter: brightness(1.08);
+}
+body.theme-mdui3 .btn-outline {
+    border-color: rgb(var(--mdui-color-outline));
+    color: rgb(var(--mdui-color-on-surface-variant));
+}
+body.theme-mdui3 .btn-outline:hover {
+    border-color: rgb(var(--mdui-color-primary));
+    color: rgb(var(--mdui-color-primary));
+}
+body.theme-mdui3 .form-input {
+    background: rgb(var(--mdui-color-surface-container-low));
+    border-color: rgb(var(--mdui-color-outline-variant));
+    border-radius: var(--mdui-shape-corner-small);
+    color: rgb(var(--mdui-color-on-surface));
+}
+body.theme-mdui3 .form-input:focus {
+    border-color: rgb(var(--mdui-color-primary));
+    box-shadow: 0 0 0 3px rgba(53, 208, 127, .18);
+}
+body.theme-mdui3 .table-wrap table {
+    background: rgb(var(--mdui-color-surface-container));
+    border: 1px solid rgb(var(--mdui-color-outline-variant));
+    border-radius: var(--mdui-shape-corner-large);
+}
+body.theme-mdui3 thead th {
+    background: rgb(var(--mdui-color-surface-container-high));
+    color: rgb(var(--mdui-color-on-surface-variant));
+}
+body.theme-mdui3 tbody td {
+    border-bottom-color: rgb(var(--mdui-color-outline-variant));
+}
+body.theme-mdui3 tbody tr:hover td {
+    background: rgb(var(--mdui-color-surface-container-high));
+}
+body.theme-mdui3 .badge {
+    border-radius: 999px;
+}
+body.theme-mdui3 .u-title {
+    color: #ffd54f;
+}
+body.theme-mdui3 .auth-logo img,
+body.theme-mdui3 .auth-box .auth-logo img {
+    border-radius: 12px;
+}
+
+/* 小屏：抽屉是模态层，固定覆盖视口 */
+@media (max-width: 839.98px) {
+    body.theme-mdui3 mdui-navigation-drawer[mobile] {
+        position: fixed !important;
+    }
+}
+@media (max-width: 720px) {
+    /* 顶栏优先保证 logo 与用户入口，主题切换收进侧栏 */
+    body.theme-mdui3 .theme-select-top {
+        display: none;
+    }
+    body.theme-mdui3 .drawer-theme {
+        display: flex;
+    }
+    body.theme-mdui3 mdui-dropdown > mdui-button {
+        max-width: 42vw;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+/* 题目页全屏模式：隐藏 MDUI 布局组件并去掉布局留白 */
+body.pw-focus mdui-top-app-bar,
+body.pw-focus mdui-navigation-drawer,
+body.pw-focus .mdui-footer {
+    display: none !important;
+}
+body.pw-focus mdui-layout-main {
+    padding: 0 !important;
+}
+body.pw-focus .mdui-container {
+    padding-top: 16px;
+}

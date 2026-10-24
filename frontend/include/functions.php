@@ -1015,6 +1015,7 @@ function problem_preview_html(array $f): string
     $sin    = (string)($f['sample_input'] ?? '');
     $sout   = (string)($f['sample_output'] ?? '');
     $hint   = (string)($f['hint'] ?? '');
+    $source = trim((string)($f['source'] ?? ''));
     $author = trim((string)($f['author'] ?? ''));
     $tags   = normalize_tags((string)($f['tags'] ?? ''));
 
@@ -1078,9 +1079,10 @@ function problem_preview_html(array $f): string
 
 /** 可选主题：key => 显示名 */
 const AIR_OJ_THEMES = [
-    'original' => 'Original',
-    'mdui3'    => 'MDUI 3',
-    'bshark'   => 'bshark',
+    'original'  => 'Original',
+    'mdui3'     => 'MDUI:Re',
+    'mdui_fake' => 'MDUI:Fake',
+    'bshark'    => 'bshark',
 ];
 
 function valid_theme(string $t): bool
@@ -1231,8 +1233,15 @@ function background_css(string $bg, string $theme = 'original'): string
     } else {
         $url = preg_match('~^https?://~i', $bg) ? $bg : '/' . ltrim($bg, '/');
     }
-    // 图片上盖一层遮罩保证文字可读：白色主题用浅色遮罩，避免整页发暗
-    $scrim = $theme === 'bshark' ? 'rgba(250,251,250,.92)' : 'rgba(13,13,13,.72)';
+    // 图片上盖一层遮罩保证文字可读：白色主题用浅色遮罩，避免整页发暗；
+    // MDUI 3 的组件表面是实色，背景再压暗一些，避免背景图抢掉内容
+    if ($theme === 'bshark') {
+        $scrim = 'rgba(250,251,250,.92)';
+    } elseif ($theme === 'mdui3') {
+        $scrim = 'rgba(10,15,12,.88)';
+    } else {
+        $scrim = 'rgba(13,13,13,.72)';
+    }
     // url() 内部用单引号：该 CSS 会被放进 style="..." 双引号属性里，双引号会截断属性
     $url = addcslashes($url, "\\'");
     return "background-image:linear-gradient({$scrim},{$scrim}),url('{$url}');"

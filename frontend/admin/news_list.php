@@ -1,7 +1,7 @@
 <?php
 $title = 'news_list';
-require_once __DIR__ . '/../inc/config.php';
-require_once __DIR__ . '/../inc/db.php';
+require_once __DIR__ . '/../include/config.php';
+require_once __DIR__ . '/../include/db.php';
 if (session_status() === PHP_SESSION_NONE) @session_start();
 $is_admin = Database::fetchOne("SELECT * FROM privilege WHERE user_id=? AND right_str='administrator'", [$_SESSION['airoj_user']['user_id'] ?? '']);
 if (!isset($_SESSION['airoj_user']) || !$is_admin) { header('Location: ../login.php'); exit; }
@@ -17,7 +17,7 @@ if (isset($_GET['unpin'])) {
 }
 
 $news = Database::fetchAll("SELECT * FROM news ORDER BY pinned DESC, news_id DESC");
-require __DIR__ . '/../inc/header.php'; ?>
+require __DIR__ . '/../include/header.php'; ?>
 <div class="page-header"><h1><i class="fa-solid fa-bullhorn"></i> 公告管理</h1><a href="news_add.php" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> 添加公告</a></div>
 <div class="card" style="padding:0"><div class="table-wrap"><table>
 <thead><tr><th style="width:60px">ID</th><th>标题</th><th style="width:170px">时间</th><th style="width:90px">置顶</th><th style="width:160px">操作</th></tr></thead>
@@ -37,4 +37,4 @@ require __DIR__ . '/../inc/header.php'; ?>
 </td>
 </tr>
 <?php endforeach; ?></tbody></table></div></div>
-<?php require __DIR__ . '/../inc/footer.php'; ?>
+<?php require __DIR__ . '/../include/footer.php'; ?>

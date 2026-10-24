@@ -5,8 +5,8 @@
  * 第一个注册的用户自动成为管理员
  */
 
-require_once __DIR__ . '/../inc/config.php';
-require_once __DIR__ . '/../inc/db.php';
+require_once __DIR__ . '/../include/config.php';
+require_once __DIR__ . '/../include/db.php';
 
 if (php_sapi_name() !== 'cli') {
     die("请通过命令行运行: php maintain/setadmin.php <username>\n");

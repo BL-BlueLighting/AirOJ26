@@ -1,7 +1,7 @@
 <?php
 $title = 'news_add';
-require_once __DIR__ . '/../inc/config.php';
-require_once __DIR__ . '/../inc/db.php';
+require_once __DIR__ . '/../include/config.php';
+require_once __DIR__ . '/../include/db.php';
 if (session_status() === PHP_SESSION_NONE) @session_start();
 $is_admin = Database::fetchOne("SELECT * FROM privilege WHERE user_id=? AND right_str='administrator'", [$_SESSION['airoj_user']['user_id'] ?? '']);
 if (!isset($_SESSION['airoj_user']) || !$is_admin) { header('Location: ../login.php'); exit; }
@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Location: news_list.php'); exit;
     }
 }
-require __DIR__ . '/../inc/header.php'; ?>
+require __DIR__ . '/../include/header.php'; ?>
 <div class="page-header"><h1><i class="fa-solid fa-pen-to-square"></i> 添加公告</h1><a href="news_list.php" class="btn btn-outline btn-sm"><i class="fa-solid fa-arrow-left"></i> 返回</a></div>
 <div class="card" style="max-width:700px">
     <form method="post">
@@ -26,5 +26,5 @@ require __DIR__ . '/../inc/header.php'; ?>
         <button type="submit" class="btn btn-primary">发布</button>
     </form>
 </div>
-<?php require __DIR__ . '/../inc/footer.php'; ?>
+<?php require __DIR__ . '/../include/footer.php'; ?>
 

@@ -16,9 +16,9 @@ if (PHP_SAPI !== 'cli') {
     exit('CLI only');
 }
 
-require_once __DIR__ . '/../inc/config.php';
-require_once __DIR__ . '/../inc/db.php';
-require_once __DIR__ . '/../inc/functions.php';
+require_once __DIR__ . '/../include/config.php';
+require_once __DIR__ . '/../include/db.php';
+require_once __DIR__ . '/../include/functions.php';
 
 $dir = rtrim($argv[1] ?? '/tmp/hydro_full', '/');
 $uploads = dirname(__DIR__) . '/data/uploads/';

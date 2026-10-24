@@ -158,7 +158,7 @@ $pe_spj_exists = !empty($pe_spj_exists);
     </div>
 </div>
 
-<script src="/js/md-toolbar.js?v=1"></script>
+<script src="<?= theme_asset('scripts', 'md-toolbar.js') ?>"></script>
 <script>
 (function () {
     // ── 实时预览 ──

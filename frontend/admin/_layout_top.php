@@ -5,7 +5,7 @@
  */
 require_once __DIR__ . '/_admin_nav.php';
 $admin_group = $admin_groups[$admin_current_group] ?? null;
-require __DIR__ . '/../inc/header.php';
+require __DIR__ . '/../include/header.php';
 ?>
 <div class="admin-shell">
     <aside class="admin-menu">

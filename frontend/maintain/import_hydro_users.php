@@ -13,9 +13,9 @@ if (PHP_SAPI !== 'cli') {
     exit('CLI only');
 }
 
-require_once __DIR__ . '/../inc/config.php';
-require_once __DIR__ . '/../inc/db.php';
-require_once __DIR__ . '/../inc/functions.php';
+require_once __DIR__ . '/../include/config.php';
+require_once __DIR__ . '/../include/db.php';
+require_once __DIR__ . '/../include/functions.php';
 
 $force = in_array('--force', $argv, true);
 if (!$force && Database::getConfig('hydro_users_imported')) {

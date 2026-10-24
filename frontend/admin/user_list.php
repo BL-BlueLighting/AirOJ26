@@ -1,13 +1,13 @@
 <?php
 $title = '用户管理';
-require_once __DIR__ . '/../inc/config.php';
-require_once __DIR__ . '/../inc/db.php';
+require_once __DIR__ . '/../include/config.php';
+require_once __DIR__ . '/../include/db.php';
 if (session_status() === PHP_SESSION_NONE) @session_start();
 $is_admin = Database::fetchOne("SELECT * FROM privilege WHERE user_id=? AND right_str='administrator'", [$_SESSION['airoj_user']['user_id'] ?? '']);
 if (!isset($_SESSION['airoj_user']) || !$is_admin) { header('Location: ../login.php'); exit; }
 
 $users = Database::fetchAll("SELECT u.*, (SELECT COUNT(*) FROM privilege p WHERE p.user_id=u.user_id AND p.right_str='administrator') AS is_admin FROM users u ORDER BY u.solved_count DESC");
-require __DIR__ . '/../inc/header.php'; ?>
+require __DIR__ . '/../include/header.php'; ?>
 <div class="page-header"><h1><i class="fa-solid fa-user"></i> 用户管理</h1></div>
 <div class="card" style="padding:0"><div class="table-wrap"><table>
 <thead><tr><th>用户</th><th>昵称</th><th>邮箱</th><th>已解决</th><th>提交</th><th>Rating</th><th>管理员</th><th>操作</th></tr></thead>
@@ -27,4 +27,4 @@ require __DIR__ . '/../inc/header.php'; ?>
 </tr>
 <?php endforeach; ?>
 </tbody></table></div></div>
-<?php require __DIR__ . '/../inc/footer.php'; ?>
+<?php require __DIR__ . '/../include/footer.php'; ?>

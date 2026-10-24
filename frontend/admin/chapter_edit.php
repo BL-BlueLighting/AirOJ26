@@ -1,8 +1,8 @@
 <?php
 $title = '编辑章节';
-require_once __DIR__ . '/../inc/config.php';
-require_once __DIR__ . '/../inc/db.php';
-require_once __DIR__ . '/../inc/functions.php';
+require_once __DIR__ . '/../include/config.php';
+require_once __DIR__ . '/../include/db.php';
+require_once __DIR__ . '/../include/functions.php';
 if (session_status() === PHP_SESSION_NONE) @session_start();
 $is_admin = Database::fetchOne("SELECT * FROM privilege WHERE user_id=? AND right_str='administrator'", [$_SESSION['airoj_user']['user_id'] ?? '']);
 if (!isset($_SESSION['airoj_user']) || !$is_admin) { header('Location: ../login.php'); exit; }
@@ -135,5 +135,5 @@ require __DIR__ . '/_layout_top.php'; ?>
 </div>
 <?php endif; ?>
 
-<script src="/js/md-toolbar.js?v=1"></script>
+<script src="<?= theme_asset('scripts', 'md-toolbar.js') ?>"></script>
 <?php require __DIR__ . '/_layout_bottom.php'; ?>

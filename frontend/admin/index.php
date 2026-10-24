@@ -1,14 +1,14 @@
 <?php
 $title = '管理后台';
-require_once __DIR__ . '/../inc/config.php';
-require_once __DIR__ . '/../inc/db.php';
+require_once __DIR__ . '/../include/config.php';
+require_once __DIR__ . '/../include/db.php';
 if (session_status() === PHP_SESSION_NONE) @session_start();
 $is_admin = Database::fetchOne("SELECT * FROM privilege WHERE user_id=? AND right_str='administrator'", [$_SESSION['airoj_user']['user_id'] ?? '']);
 if (!isset($_SESSION['airoj_user']) || !$is_admin) { header('Location: /login.php'); exit; }
 
 $panel = $_GET['panel'] ?? 'home';
 $user = $_SESSION['airoj_user'];
-require __DIR__ . '/../inc/header.php';
+require __DIR__ . '/../include/header.php';
 require_once __DIR__ . '/_admin_nav.php';
 
 $isHome = in_array($panel, ['home', 'dashboard'], true);
@@ -205,7 +205,7 @@ if ($panel === 'dashboard') {
         }
     }
 
-    require_once __DIR__ . '/../inc/Parsedown.php';
+    require_once __DIR__ . '/../include/Parsedown.php';
     $pd = new Parsedown();
     ?>
     <div class="page-header"><h1><i class="fa-solid fa-right-to-bracket"></i> 导入题目</h1></div>
@@ -279,7 +279,7 @@ if ($panel === 'dashboard') {
 <?php
 // ===== 导入函数 =====
 function import_hydrooj(string $dir, string $name): void {
-    require_once __DIR__ . '/../inc/db.php';
+    require_once __DIR__ . '/../include/db.php';
     $input_dir = INPUTS_DIR;
 
     $title = $name;
@@ -351,7 +351,7 @@ function import_hydrooj(string $dir, string $name): void {
 }
 
 function import_hustoj(string $dir, string $name): void {
-    require_once __DIR__ . '/../inc/db.php';
+    require_once __DIR__ . '/../include/db.php';
     $input_dir = INPUTS_DIR;
 
     $title = $name;
@@ -715,4 +715,4 @@ function import_hustoj(string $dir, string $name): void {
     </div>
 </div>
 <?php endif; ?>
-<?php require __DIR__ . '/../inc/footer.php'; ?>
+<?php require __DIR__ . '/../include/footer.php'; ?>

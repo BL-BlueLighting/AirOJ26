@@ -1,0 +1,867 @@
+/* ── bshark 主题：基于 HUSTOJ bshark 的 main-light.css 还原 ── */
+@font-face {
+    font-family: Texta-book;
+    src: url("2C5677_2_0.ttf");
+}
+
+html,
+body {
+    height: 100%;
+}
+
+body {
+    background-color: #fafbfa;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-weight: 300 !important;
+}
+
+.bsharkMain {
+    margin-top: 70px;
+}
+
+.bsharkMenu,
+.bsharkMiniMenu {
+    height: 48px;
+}
+
+.bsharkMiniMenu {
+    visibility: hidden;
+}
+
+.topmenu {
+    transition: all .2s ease-in-out;
+}
+
+@media (max-width: 792px) {
+    .bsharkMenu {
+        visibility: hidden;
+    }
+
+    .bsharkMiniMenu {
+        visibility: visible;
+    }
+}
+
+.bsharkMenu .item {
+    background-color: transparent !important;
+    position: relative;
+}
+
+.ui.menu {
+    border: none;
+}
+
+.ui.menu .item::after {
+    content: "";
+    position: absolute;
+    transition: all .2s ease-in-out;
+}
+
+.ui.menu.vertical .item::after {
+    left: 0;
+    width: 2px;
+    top: 5px;
+    bottom: 5px;
+}
+
+.ui.menu:not(.vertical) .item::after {
+    bottom: 0;
+    height: 2px;
+    left: 20px;
+    right: 20px;
+}
+
+.ui.menu.vertical .item.active::after {
+    margin-bottom: 0;
+    top: 0;
+    bottom: 0;
+}
+
+.ui.menu:not(.vertical) .item.active::after {
+    margin-bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: #2185d0 !important;
+    box-shadow: 0 5px 15px #2185d020;
+}
+
+.ui.menu .item.active::after {
+    background-color: #2185d0 !important;
+    box-shadow: 0 5px 15px #2185d020;
+}
+
+.ui.menu.vertical .item:hover::after {
+    top: 0;
+    bottom: 0;
+}
+
+.ui.menu:not(.vertical) .item:hover::after {
+    left: 0;
+    right: 0;
+}
+
+.ui.menu .item:hover::after {
+    background-color: #aaa;
+}
+
+.problemAction {
+    border-radius: 0 !important;
+}
+
+.problemHead {
+    margin-bottom: 24px;
+}
+
+.problemHead .rightBox {
+    float: right;
+}
+
+.problemHead .rightBox::after {
+    content: "";
+    clear: both;
+}
+
+.vTooltip {
+    position: relative;
+}
+
+.vTooltip .vTooltiptext {
+    visibility: hidden;
+    width: 80px;
+    background-color: #212223;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 8px 12px;
+    position: absolute;
+    z-index: 1;
+    bottom: 100%;
+    left: 50%;
+    font-size: 12px;
+    margin-bottom: 0px;
+    margin-left: -40px;
+    opacity: 0;
+    transition: opacity .12s ease-in-out, margin-bottom .1s ease-in-out;
+}
+
+.vTooltip:hover .vTooltiptext {
+    margin-bottom: 5px;
+    visibility: visible;
+    opacity: 1;
+}
+
+.rank {
+    font-size: 60px;
+    line-height: 60px;
+    font-weight: 300;
+    color: #d1d3d5;
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+}
+
+.rank-title a {
+    color: #212223 !important;
+}
+
+.rank-stat a {
+    opacity: 1 !important;
+    color: #fff !important;
+}
+
+.rank-school {
+    color: #999;
+    margin-bottom: 12px;
+}
+
+.card-rank {
+    margin-bottom: 20px;
+}
+
+img {
+    max-width: 100%;
+}
+
+.label {
+    padding: 4px 8px;
+    font-size: 75%;
+    font-weight: 500;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #fff;
+    border-radius: .375rem;
+    text-align: center;
+}
+
+a.label {
+    transition: all 250ms cubic-bezier(.27, .01, .38, 1.06)
+}
+
+.label-default {
+    background-color: #aaa;
+}
+
+.label-default[href]:focus,
+.label-default[href]:hover {
+    background-color: #999;
+}
+
+.label-primary {
+    color: #fff;
+    background-color: #007bff
+}
+
+.label-primary[href]:focus,
+.label-primary[href]:hover {
+    color: #fff;
+    text-decoration: none;
+    background-color: #0062cc
+}
+
+.gray {
+    color: #fff;
+    background-color: #5a6169
+}
+
+.gray[href]:focus,
+.gray[href]:hover {
+    color: #fff;
+    text-decoration: none;
+    background-color: #42484e
+}
+
+.label-success {
+    color: #fff;
+    background-color: #17c671
+}
+
+.label-success[href]:focus,
+.label-success[href]:hover {
+    color: #fff;
+    text-decoration: none;
+    background-color: #129857
+}
+
+.label-info {
+    color: #fff;
+    background-color: #00b8d8
+}
+
+.label-info[href]:focus,
+.label-info[href]:hover {
+    color: #fff;
+    text-decoration: none;
+    background-color: #008da5
+}
+
+.label-warning {
+    color: #212529;
+    background-color: #ffb400
+}
+
+.label-warning[href]:focus,
+.label-warning[href]:hover {
+    color: #212529;
+    text-decoration: none;
+    background-color: #cc9000
+}
+
+.label-danger {
+    color: #fff;
+    background-color: #c4183c
+}
+
+.label-danger[href]:focus,
+.label-danger[href]:hover {
+    color: #fff;
+    text-decoration: none;
+    background-color: #97122e
+}
+
+.label-light {
+    color: #212529;
+    background-color: #e9ecef
+}
+
+.label-light[href]:focus,
+.label-light[href]:hover {
+    color: #212529;
+    text-decoration: none;
+    background-color: #cbd3da
+}
+
+blockquote:after,
+blockquote:before,
+q:after,
+q:before {
+    content: '';
+    content: none;
+}
+
+blockquote {
+    margin: 20px 0;
+    border-left: 5px solid #e6e6e6;
+    padding: 5px 10px;
+    zoom: 1;
+}
+
+blockquote.pending {
+    border-left-color: rgb(107, 175, 255);
+}
+
+blockquote.inprogress {
+    border-left-color: #ff8080;
+}
+
+blockquote.testcase {
+    border-left-color: rgb(226, 239, 250);
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+    height: 12px;
+}
+
+::-webkit-scrollbar-thumb {
+    -webkit-box-shadow: inset 0 0 5px #bebebe;
+    background: #bebebe;
+    transition: all 0.2s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    -webkit-box-shadow: inset 0 0 5px #aaaaaa;
+    background: #888;
+}
+
+::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 5px #e0e0e0;
+    background: #e0e0e0;
+    opacity: 1;
+}
+
+.card {
+    background-color: #fff;
+    position: relative;
+    border-radius: 0;
+    margin-bottom: 25px;
+    box-shadow: 0 5px 15px rgba(50, 50, 93, .1), 0 5px 8px rgba(0, 0, 0, .07);
+    transition: all 0.2s;
+}
+
+.card:hover {
+    border-radius: 0;
+    box-shadow: 0 8px 24px rgba(50, 50, 93, .12), 0 8px 13px rgba(0, 0, 0, .1);
+}
+
+.card-body {
+    padding: 24px;
+}
+
+.form-control {
+    border-radius: 0;
+}
+
+.colorful {
+    animation: colorful-change 10s linear 0s infinite;
+}
+
+@keyframes colorful-change {
+    0% {
+        color: #17C671;
+    }
+
+    20% {
+        color: #0067F4;
+    }
+
+    40% {
+        color: #C4183C;
+    }
+
+    60% {
+        color: #FFB400;
+    }
+
+    80% {
+        color: #E9ECEF;
+    }
+
+    100% {
+        color: #17C671;
+    }
+}
+
+.purple {
+    color: #8A2BE2;
+}
+
+.purple-c {
+    animation: p-colorful-change 12s linear 0s infinite;
+}
+
+.colorful:not(.headt):after {
+    content: "vip";
+    padding: 2px;
+    margin: 2px;
+    animation: bg-colorful-change 10s linear 0s infinite;
+    color: white;
+    border-radius: 5px;
+}
+
+.purple-c:not(.headt):after {
+    content: "";
+    padding: 2px;
+    margin: 2px;
+    animation: p-bg-colorful-change 10s linear 0s infinite;
+    color: white;
+    border-radius: 5px;
+}
+
+.purple:not(.headt):after {
+    content: "";
+    padding: 2px;
+    margin: 2px;
+    animation: p-bg-colorful-change 10s linear 0s infinite;
+    color: white;
+    border-radius: 5px;
+}
+
+@keyframes p-colorful-change {
+    0% {
+        color: #8A2BE2;
+    }
+
+    16% {
+        color: #8B008B;
+    }
+
+    33% {
+        color: #9932CC;
+    }
+
+    50% {
+        color: #9400D3;
+    }
+
+    66% {
+        color: #7B68EE;
+    }
+
+    82% {
+        color: #800080;
+    }
+
+    100% {
+        color: #8A2BE2;
+    }
+}
+
+@keyframes p-bg-colorful-change {
+    0% {
+        background-color: #8A2BE2;
+    }
+
+    16% {
+        background-color: #8B008B;
+    }
+
+    33% {
+        background-color: #9932CC;
+    }
+
+    50% {
+        background-color: #9400D3;
+    }
+
+    66% {
+        background-color: #7B68EE;
+    }
+
+    82% {
+        background-color: #800080;
+    }
+
+    100% {
+        background-color: #8A2BE2;
+    }
+}
+
+.bg-colorful {
+    animation: bg-colorful-change 10s linear 0s infinite;
+}
+
+@keyframes bg-colorful-change {
+    0% {
+        background-color: #17C671;
+    }
+
+    20% {
+        background-color: #0067F4;
+    }
+
+    40% {
+        background-color: #C4183C;
+    }
+
+    60% {
+        background-color: #FFB400;
+    }
+
+    80% {
+        background-color: #E9ECEF;
+    }
+
+    100% {
+        background-color: #17C671;
+    }
+}
+
+.nav_ul {
+    width: 100%;
+    background-color: #fff;
+    height: 48px;
+    position: fixed;
+    top: 0;
+    z-index: 20000;
+    transition: all 0.1s;
+    left: 0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .2);
+}
+
+
+/*@media (max-width: 1200px) {
+    body {
+        width: 1200px;
+    }
+    .nav_ul {
+        width: 1200px;
+    }
+}*/
+
+a {
+    text-decoration: none;
+}
+
+ul {
+    list-style: none;
+}
+
+.nav_ul li {
+    float: left;
+    padding: 2px 0px;
+    position: relative;
+    height: 44px;
+    background: rgba(255, 255, 255, 0);
+}
+
+.nav_ul li .line {
+    position: absolute;
+    width: 0;
+    left: 50%;
+    top: 0;
+    height: 3px;
+    display: block;
+    background: #9ae3f3;
+}
+
+.nav_ul li:hover .line {
+    width: 100%;
+    left: 0;
+    background: #5f9fd6;
+}
+
+.nav_ul li .active {
+    width: 100%;
+    left: 0;
+}
+
+.nav_ul li a {
+    text-decoration: none;
+    color: #000;
+    transition: 200ms ease-in-out;
+}
+
+.nav_ul li:hover {
+    background-color: #fdfdfd;
+}
+
+.nav_ul li:hover a {
+    transition: 200ms ease-in-out;
+}
+
+.nav_ul li .active {
+    transition: 200ms ease-in-out;
+}
+
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #fefefe;
+    min-width: 150px;
+    box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+    margin-top: 10px;
+}
+
+.dropdown-content a {
+    color: black;
+    padding: 8px 12px;
+    text-decoration: none;
+    display: block;
+}
+
+.dropdown-content a:hover {
+    background-color: #f1f1f1;
+    color: black;
+    border-left: 1px solid #000;
+}
+
+.dropdown:hover .dropdown-content {
+    display: block;
+    margin-top: 0;
+}
+
+.rightmenu-content {
+    position: absolute;
+    background-color: #ffffff;
+    min-width: 180px;
+    box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+    margin-top: 10px;
+    z-index: 200;
+    opacity: 1;
+}
+
+.rightmenu-content a {
+    color: black;
+    padding: 5px 10px;
+    text-decoration: none;
+    display: block;
+}
+
+.rightmenu-content a:hover {
+    background-color: #fdfdfd;
+    color: black;
+    border-left: 1px solid #000;
+}
+
+.rightmenu:hover .rightmenu-content {
+    margin-top: 0;
+}
+
+.info-tip {
+    background: rgba(250, 60, 0, 1);
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    top: 0;
+    right: 0;
+    -webkit-border-radius: 50%;
+    -moz-border-radius: 50%;
+    border-radius: 50%;
+}
+
+#lowmenuchild1 {
+    position: fixed;
+    bottom: 5%;
+    right: 2%;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    background-color: #0067F4;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    padding-top: 10px;
+}
+
+#lowmenuchild1 {
+    z-index: 1;
+}
+
+.footer {
+    bottom: -1;
+    float: top;
+    top: 50px;
+    margin-top: 50px;
+    z-index: 0;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+    height: 220px;
+    box-shadow: 0px 0px 50px 0px rgba(0, 0, 0, 0.2);
+    background-color: #fff;
+}
+
+.topfooter {
+    margin-right: 5%;
+    margin-left: 7%;
+    margin-top: 2%;
+}
+
+.list1 {
+    float: left;
+    width: 15%;
+}
+
+.list2 {
+    float: right;
+    width: 200px;
+}
+
+.footer a:hover {
+    text-decoration: underline
+}
+
+.testdiv * {
+    vertical-align: top;
+}
+
+.list-group-item {
+    border-radius: 0 !important;
+}
+
+.list-group .list-group-item:hover {
+    border-left: 2px solid #1780db;
+}
+
+.pagination {
+    margin-bottom: 0;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+.pagination .item {
+    position: relative;
+    color: #888;
+    background-color: transparent !important;
+}
+
+.pagination .item::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    transition: background .2s;
+}
+
+.pagination .item.active::after {
+    background-color: #1780db !important;
+    box-shadow: 0 5px 15px #2185d0;
+}
+
+.pagination .item:hover::after {
+    background-color: #aaa;
+}
+
+/* ── AirOJ 组件适配：沿用 bshark / Semantic UI 的白色视觉 ── */
+body.theme-bshark {
+    --bg-primary: #fafbfa;
+    --bg-secondary: #f3f5f7;
+    --bg-card: #ffffff;
+    --bg-hover: #f5f7fa;
+    --border: #e3e8ee;
+    --border-light: #cfd7df;
+    --text-primary: #1f2933;
+    --text-secondary: #5b6b7c;
+    --text-muted: #8a94a6;
+    --accent: #2185d0;
+    --accent-hover: #1678c2;
+    --accent-gold: #f2c037;
+    --green: #21ba45;
+    --red: #db2828;
+    --yellow: #fbbd08;
+    --green-bg: #e8f7ec;
+    --red-bg: #fdeaea;
+    --yellow-bg: #fff8e1;
+    --gold-bg: #fff4d6;
+    --info-bg: #e8f4fb;
+    --accent-bg: rgba(33, 133, 208, .10);
+    --accent-border: rgba(33, 133, 208, .35);
+    --overlay-header: rgba(255, 255, 255, .94);
+    --overlay-card: rgba(255, 255, 255, .92);
+    --radius: 4px;
+    --radius-lg: 6px;
+    --shadow: 0 1px 3px rgba(34, 36, 38, .08);
+    background-color: #fafbfa;
+    color: #1f2933;
+    font-family: Lato, "Noto Sans SC", "Microsoft YaHei", sans-serif;
+}
+body.theme-bshark .card {
+    background: #fff;
+    border: 1px solid #e3e8ee;
+    border-radius: 6px;
+    box-shadow: 0 1px 2px rgba(34, 36, 38, .05);
+}
+body.theme-bshark .card h2 { border-bottom-color: #eef1f4; }
+body.theme-bshark .page-header h1 { font-weight: 400; }
+body.theme-bshark .btn {
+    background: #e0e1e2;
+    color: rgba(0, 0, 0, .8);
+    border-radius: 4px;
+    font-weight: 700;
+}
+body.theme-bshark .btn:hover { background: #cacbcd; color: rgba(0, 0, 0, .9); }
+body.theme-bshark .btn-primary { background: #2185d0; color: #fff; }
+body.theme-bshark .btn-primary:hover { background: #1678c2; }
+body.theme-bshark .btn-danger { background: #db2828; color: #fff; }
+body.theme-bshark .btn-success { background: #21ba45; color: #fff; }
+body.theme-bshark .btn-outline {
+    background: transparent;
+    border: 1px solid rgba(34, 36, 38, .15);
+    color: rgba(0, 0, 0, .8);
+}
+body.theme-bshark .btn-outline:hover { background: rgba(0, 0, 0, .04); border-color: rgba(34, 36, 38, .25); color: rgba(0, 0, 0, .9); }
+body.theme-bshark .form-input {
+    background: #fff;
+    border: 1px solid rgba(34, 36, 38, .15);
+    color: rgba(0, 0, 0, .87);
+    border-radius: 4px;
+}
+body.theme-bshark .form-input:focus { border-color: #85b7d9; }
+body.theme-bshark .table-wrap table { background: #fff; border: 1px solid #e3e8ee; border-radius: 4px; }
+body.theme-bshark thead th { background: #f9fafb; color: #1f2933; border-bottom: 1px solid #e3e8ee; }
+body.theme-bshark tbody td { border-bottom: 1px solid #f0f2f5; }
+body.theme-bshark tbody tr:hover td { background: #f9fafb; }
+body.theme-bshark .badge { border-radius: 4px; }
+body.theme-bshark .bsharkMain { margin-top: 70px; }
+body.theme-bshark .ui.menu .item { color: #1f2933; }
+body.theme-bshark .ui.menu .item.active { color: #2185d0; }
+body.theme-bshark .footer { color: #5b6b7c; }
+body.theme-bshark .theme-select { background: #fff; border-color: #d4d4d5; color: #1f2933; }
+body.theme-bshark .u-title { color: #b58100; border-color: rgba(181, 129, 0, .35); background: rgba(242, 192, 55, .15); }
+body.theme-bshark .u-badge { color: inherit; }
+body.theme-bshark .msg-badge { color: #fff; }
+
+/* 避免 AirOJ 基础 .container 规则影响 Semantic UI 的 .ui.container（尤其是固定菜单高度） */
+body.theme-bshark .ui.container { min-height: 0 !important; padding: 0; }
+body.theme-bshark .bsharkMain { padding: 0 16px 30px; }
+
+
+/* 题目页全屏模式：隐藏 bshark 顶栏 / 页脚 */
+body.pw-focus .bsharkMenu,
+body.pw-focus .bshark-footer { display: none !important; }
+body.pw-focus .bsharkMain { margin-top: 0 !important; }
+
+/* 固定菜单内部的 .ui.container 不受题目页 .container 高度规则影响 */
+body.theme-bshark .bsharkMenu .ui.container {
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+}
+
+/* 移动端：保留完整菜单并允许横向滚动（不依赖 bsharkMinMenu） */
+@media (max-width: 792px) {
+    body.theme-bshark .bsharkMenu { visibility: visible !important; }
+    body.theme-bshark .bsharkMenu .ui.container { overflow-x: auto; white-space: nowrap; }
+    body.theme-bshark .bsharkMenu .ui.container::-webkit-scrollbar { height: 3px; }
+}

@@ -53,10 +53,12 @@ php maintain/setadmin.php <用户名>
 
 ```
 AirOJ/
-├── frontend/          ← PHP 前端
-│   ├── inc/           ← 配置、数据库、函数库
-│   ├── css/           ← 科幻风样式表
-│   ├── js/            ← JavaScript
+├── frontend/          ← PHP 前端（MVC）
+│   ├── include/       ← 核心 bootstrap / controller / 数据库 / 函数库
+│   ├── logics/        ← 页面业务逻辑
+│   ├── templates/     ← original / mdui3 (MDUI:Re) / mdui_fake (MDUI:Fake) / bshark 主题模板与样式、脚本
+│   ├── css/           ← 共享第三方 CSS（Font Awesome）
+│   ├── js/            ← 共享 JavaScript（Monaco 构建产物）
 │   ├── admin/         ← 管理后台
 │   ├── maintain/      ← CLI 工具
 │   └── data/          ← SQLite 数据库、上传文件
