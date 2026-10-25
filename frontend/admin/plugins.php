@@ -17,10 +17,87 @@ if (!isset($_SESSION['airoj_user']) || !$is_admin) {
 $ok = '';
 $err = '';
 $pm = plugin_manager();
+
+// 上传插件：先做静态校验，落盘后由下一次请求扫描元信息并同步数据库
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_plugin'])) {
+    $uploadMax = 1024 * 1024;
+    $file = $_FILES['plugin_file'] ?? null;
+    $overwrite = !empty($_POST['overwrite']);
+
+    $uploadErrors = [
+        UPLOAD_ERR_INI_SIZE   => '文件超过 PHP 的 upload_max_filesize 限制',
+        UPLOAD_ERR_FORM_SIZE  => '文件超过表单允许的大小',
+        UPLOAD_ERR_PARTIAL    => '文件只上传了一部分，请重试',
+        UPLOAD_ERR_NO_FILE    => '没有选择文件',
+        UPLOAD_ERR_NO_TMP_DIR => '服务器缺少临时目录',
+        UPLOAD_ERR_CANT_WRITE => '服务器写入临时文件失败',
+        UPLOAD_ERR_EXTENSION  => '上传被 PHP 扩展阻止',
+    ];
+
+    if (!is_array($file) && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
+        $err = '上传失败：文件可能超过服务器允许的大小';
+    } elseif (!is_array($file) || !isset($file['error']) || is_array($file['error'])
+        || !is_string($file['name'] ?? null) || !is_string($file['tmp_name'] ?? null)) {
+        $err = '请选择要上传的插件文件';
+    } elseif ((int)$file['error'] !== UPLOAD_ERR_OK) {
+        $err = '上传失败：' . ($uploadErrors[(int)$file['error']] ?? ('错误码 ' . (int)$file['error']));
+    } elseif (!is_uploaded_file((string)$file['tmp_name'])) {
+        $err = '上传文件无效';
+    } else {
+        $size = @filesize((string)$file['tmp_name']);
+        $original = basename(str_replace('\\', '/', (string)$file['name']));
+        $ext = strtolower((string)pathinfo($original, PATHINFO_EXTENSION));
+        $rawSlug = (string)pathinfo($original, PATHINFO_FILENAME);
+        $slug = trim((string)preg_replace('/[^A-Za-z0-9_-]+/', '_', $rawSlug), '_');
+        $src = ($size !== false && $size > 0 && $size <= $uploadMax)
+            ? (string)@file_get_contents((string)$file['tmp_name'])
+            : '';
+
+        if ($size === false || $size <= 0) {
+            $err = '不能上传空文件';
+        } elseif ($size > $uploadMax) {
+            $err = '插件文件不能超过 1 MB';
+        } elseif ($ext !== 'php') {
+            $err = '只支持上传 .php 文件';
+        } elseif ($slug === '' || strlen($slug) > 64) {
+            $err = '文件名无效：只能包含字母、数字、下划线和连字符（最长 64 字符）';
+        } elseif (!preg_match('/^\s*<\?php/i', $src)) {
+            $err = '插件文件必须以 <?php 开头';
+        } elseif (strpos($src, 'AIR_OJ_PLUGIN_LOADER') === false) {
+            $err = '插件文件缺少 AIR_OJ_PLUGIN_LOADER 防护，请参考示例插件';
+        } else {
+            $dir = $pm->dir();
+            if (!is_dir($dir)) @mkdir($dir, 0755, true);
+            $dest = $dir . '/' . $slug . '.php';
+            if (!is_dir($dir) || !is_writable($dir)) {
+                $err = '插件目录不可写：' . $dir;
+            } elseif (is_file($dest) && !$overwrite) {
+                $err = '已存在同名插件 ' . $slug . '.php；如需更新请勾选“覆盖同名插件”';
+            } elseif (!move_uploaded_file((string)$file['tmp_name'], $dest)) {
+                $err = '保存插件文件失败，请检查目录权限';
+            } else {
+                @chmod($dest, 0644);
+                try {
+                    // 上传/覆盖后先禁用，待管理员确认权限后再启用
+                    Database::exec(
+                        "UPDATE plugins SET enabled=0, updated_at=? WHERE slug=?",
+                        [date('Y-m-d H:i:s'), $slug]
+                    );
+                } catch (Throwable $e) {
+                    error_log('[AirOJ plugin] disable after upload failed: ' . $e->getMessage());
+                }
+                $_SESSION['arioj_plugin_upload_flash'] = $slug;
+                header('Location: /admin/plugins.php');
+                exit;
+            }
+        }
+    }
+}
+
 try {
     $pm->syncDatabase();
 } catch (Throwable $e) {
-    $err = '同步插件失败：' . $e->getMessage();
+    $err = $err ?: ('同步插件失败：' . $e->getMessage());
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_plugin'])) {
@@ -76,6 +153,41 @@ try {
     }
 } catch (Throwable $e) {}
 $pluginErrors = $pm->errors();
+
+// 上一次上传的结果（通过 session 传递，避免被 URL 伪造）
+$uploadedSlug = (string)($_SESSION['arioj_plugin_upload_flash'] ?? '');
+unset($_SESSION['arioj_plugin_upload_flash']);
+if ($uploadedSlug !== '') {
+    if (!preg_match('/^[A-Za-z0-9_-]+$/', $uploadedSlug)) {
+        $err = $err ?: '上传结果无效';
+    } else {
+        $uploadError = $pluginErrors[$uploadedSlug] ?? '';
+        $uploadedRow = Database::fetchOne("SELECT name FROM plugins WHERE slug=?", [$uploadedSlug]);
+        if ($uploadError !== '') {
+            if (strpos($uploadError, '同步数据库失败：') === 0) {
+                $err = $err ?: ('插件已上传，但' . $uploadError);
+            } else {
+                $err = $err ?: ('插件已上传，但加载失败：' . $uploadError
+                    . '（已保持禁用；请修复后重新上传，或删除 plugins/' . $uploadedSlug . '.php）');
+            }
+        } elseif ($uploadedRow) {
+            $ok = $ok ?: ('插件「' . $uploadedRow['name'] . '」已上传，当前为禁用状态，请检查权限后启用。');
+        } else {
+            $err = $err ?: '插件文件已上传，但未能生成插件记录，请检查文件内容或目录权限。';
+        }
+    }
+}
+
+// 加载失败且不在数据库中的插件文件（例如手动放入目录或上传后校验失败）
+$knownSlugs = [];
+foreach ($rows as $r) $knownSlugs[(string)$r['slug']] = true;
+$orphanErrors = array_filter(
+    $pluginErrors,
+    static fn(string $slug): bool => !isset($knownSlugs[$slug]),
+    ARRAY_FILTER_USE_KEY
+);
+if ($uploadedSlug !== '') unset($orphanErrors[$uploadedSlug]);
+
 $groups = \AirOJ\Plugin\PermissionRegistry::groups();
 
 $admin_current_group = 'plugin';
@@ -91,8 +203,38 @@ require __DIR__ . '/_layout_top.php'; ?>
     权限开关是执行层面的限制，不是 PHP 沙箱。
 </div>
 
+<div class="card" style="max-width:900px">
+    <h2><i class="fa-solid fa-upload"></i> 上传插件</h2>
+    <p style="color:var(--text-secondary);font-size:13px;margin-bottom:12px">
+        仅支持单个 <code>.php</code> 文件，最大 1 MB。文件必须以 <code>&lt;?php</code> 开头、使用
+        <code>AIR_OJ_PLUGIN_LOADER</code> 防止直接访问，并 return 一个 <code>AirOJ\Plugin\Plugin</code> 实例。
+        上传或覆盖后插件会自动禁用，请检查权限后再启用。
+    </p>
+    <form method="post" enctype="multipart/form-data">
+        <div class="form-row">
+            <div class="form-group"><input type="file" name="plugin_file" accept=".php,application/x-php" required></div>
+            <button type="submit" name="upload_plugin" class="btn btn-primary"><i class="fa-solid fa-upload"></i> 上传插件</button>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;color:var(--text-muted);cursor:pointer">
+            <input type="checkbox" name="overwrite" value="1"> 覆盖同名插件（覆盖后同样会禁用）
+        </label>
+    </form>
+</div>
+
+<?php if ($orphanErrors): ?>
+<div class="alert alert-error" style="max-width:900px">
+    <strong>以下插件文件加载失败：</strong>
+    <ul style="margin:8px 0 0 18px">
+        <?php foreach ($orphanErrors as $slug => $msg): ?>
+        <li><code><?= htmlspecialchars((string)$slug) ?>.php</code>：<?= htmlspecialchars((string)$msg) ?></li>
+        <?php endforeach; ?>
+    </ul>
+    <p style="font-size:12px;margin:8px 0 0">请修复文件后重新上传，或从插件目录中删除。</p>
+</div>
+<?php endif; ?>
+
 <?php if (!$rows): ?>
-<div class="card"><p style="color:var(--text-muted)">还没有插件。将单个 PHP 文件放到 <code>frontend/plugins/</code> 后刷新本页。</p></div>
+<div class="card"><p style="color:var(--text-muted)">还没有插件。使用上方上传功能，或将单个 PHP 文件放到 <code>frontend/plugins/</code> 后刷新本页。</p></div>
 <?php endif; ?>
 
 <?php foreach ($rows as $row):
