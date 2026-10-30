@@ -70,6 +70,9 @@ return new class extends \AirOJ\Plugin\Plugin {
 | `Hook:Discuss/Reply.Send` | 发布讨论回复后 | `reply_id`、`topic_id`、`user_id`、`content` |
 | `Hook:Register/User.Submit` | 用户注册成功后 | `user_id`、`email`、`nick`、`verify_required` |
 | `Hook:Profile/User.Update` | 用户更新个人资料后 | `user_id`、`email`、`nick`、`school` |
+| `Hook:SinglePage/ProblemList.Show` | 题目列表每道题渲染时 | `id`、`problem_name`、`level`（`level_name`、`level_number`）、`tags`（数组）、`author`、`testpoints`、`pass`、`submits`、`user_status`（`guest` / `none` / `attempted` / `solved`）；返回 HTML 插入该题的「扩展」列 |
+
+- `Hook:SinglePage/ProblemList.Show` 的 `level` 取多难度题目中质量最高的难度；`pass` / `submits` 与题目列表显示一致（满分提交数 / 总提交数）。
 
 ## 3. 功能调用（Call / Have）
 
@@ -77,7 +80,7 @@ return new class extends \AirOJ\Plugin\Plugin {
 
 | 权限 | 参数 / 返回 |
 | --- | --- |
-| `Call:Achievement/Self.Add` | `(code, name, description="", icon="fa-award", color="#a855f7"): int|false` |
+| `Call:Achievement/Self.Add` | `(code, name, description='', icon='fa-award', color='#a855f7'): int or false` |
 | `Call:Achievement/User.Add` | `(userId, achievementIdOrCode): bool` |
 | `Call:Achievement/Self.Delete` | `(achievementIdOrCode): bool` |
 | `Call:Achievement/User.Delete` | `(userId, achievementIdOrCode): bool` |
@@ -87,7 +90,7 @@ return new class extends \AirOJ\Plugin\Plugin {
 
 | 权限 | 参数 / 返回 |
 | --- | --- |
-| `Call:Items/Self.Add` | `(type, name, description="", value=""): int|false`；`type` 为 `frame` / `badge` / `bbs_style` / `bubble` |
+| `Call:Items/Self.Add` | `(type, name, description="", value=""): int or false` `type` 为 `frame` / `badge` / `bbs_style` / `bubble` |
 | `Call:Items/User.Add` | `(userId, collectibleId): bool` |
 | `Call:Items/Self.Delete` | `(collectibleId): bool` |
 | `Call:Items/User.Delete` | `(userId, collectibleId): bool` |
@@ -97,9 +100,11 @@ return new class extends \AirOJ\Plugin\Plugin {
 
 | 权限 | 参数 / 返回 |
 | --- | --- |
-| `Call:Message/Sys.Send` | `(toUser, subject, content, fromUser="System"): int|false`；系统消息也遵循邮件抄送设置 |
+| `Call:Message/Sys.Send` | `(toUser, subject, content, fromUser="System"): int or false`；系统消息也遵循邮件抄送设置 |
 | `Have:Message/User.Sent` | `(userId, pattern, mode="exact", field="content"): bool`；`mode` 支持 `exact` / `contains` / `regex`，`field` 为 `content` / `subject` |
 | `Have:Message/User.Read` | `(userId, pattern, mode="exact", field="content"): bool` |
+
+
 
 ### 3.4 称号
 
@@ -127,12 +132,12 @@ return new class extends \AirOJ\Plugin\Plugin {
 | 权限 | 参数 / 返回 |
 | --- | --- |
 | `Have:Chapter/User.Cleared` | `(userId, chapterId): bool`；章节内所有题目的最高分提交需 ≥100 |
-| `Call:Chapter/Self.Add` | `(title, description="", background="", creator="", problems=[]): int|false` |
-| `Call:Race/Self.Add` | `(title, startTime, endTime, contestType=0, private="0", defunct="N", description="", problems=[]): int|false` |
+| `Call:Chapter/Self.Add` | `(title, description="", background="", creator="", problems=[]): int or false` |
+| `Call:Race/Self.Add` | `(title, startTime, endTime, contestType=0, private="0", defunct="N", description="", problems=[]): int or false` |
 | `Call:Race/Self.Over` | `(contestId): bool`；结束时间设为当前时间 |
 | `Have:Race/User.Join` | `(userId, contestId): bool` |
-| `Call:Discuss/Topic.Add` | `(userId, title, content, problemId=0): int|false` |
-| `Call:Discuss/Reply.Add` | `(userId, topicId, content): int|false` |
+| `Call:Discuss/Topic.Add` | `(userId, title, content, problemId=0): int or false` |
+| `Call:Discuss/Reply.Add` | `(userId, topicId, content): int orfalse` |
 | `Have:Problem/User.Solved` | `(userId, problemId): bool` |
 
 ## 4. 后台控制

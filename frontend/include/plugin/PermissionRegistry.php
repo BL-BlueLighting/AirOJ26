@@ -102,7 +102,8 @@ class PermissionRegistry
             'Call:Discuss/Topic.Add' => $c('讨论区', '创建讨论主题', '(string $userId, string $title, string $content, int $problemId=0): int|false', 'discussTopicAdd'),
             'Call:Discuss/Reply.Add' => $c('讨论区', '创建讨论回复', '(string $userId, int $topicId, string $content): int|false', 'discussReplyAdd'),
 
-            // ── 题目（补充） ──
+            // ── 题目 ──
+            'Hook:SinglePage/ProblemList.Show' => $h('题目', '题目列表每道题渲染时触发，返回值显示在该题的「扩展」列', 'array $ctx; return ?string'),
             'Have:Problem/User.Solved' => $v('题目', '用户是否已通过某题', '(string $userId, int|string $problemId): bool', 'problemUserSolved'),
         ];
         return self::$all;

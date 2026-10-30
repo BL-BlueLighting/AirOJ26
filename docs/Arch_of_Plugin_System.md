@@ -69,6 +69,8 @@ AirOJ 26 目前的前端是典型的 MVC 架构，为插件扩展提供了很多
 - 讨论区：发帖 (`Hook:Discuss/Topic.Send`)
 - 讨论区：回复 (`Hook:Discuss/Reply.Send`)
 
+- 题目列表：显示每道题 (`Hook:SinglePage/ProblemList.Show`)
+
 此处的 Hook 只能处理，它们是在功能被调用时连带调用的东西，它们是被动接收而非主动发送。
 
 ##### 2.0.2.3 功能调用

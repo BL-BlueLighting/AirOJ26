@@ -8,6 +8,32 @@
     </form>
 </div>
 
+<?php
+// 题目列表插件扩展列：Hook:SinglePage/ProblemList.Show
+$pluginCells = [];
+$hasPluginCell = false;
+foreach ($pageItems as $p) {
+    $tagList = [];
+    foreach (preg_split('/[,，]/u', (string)$p['tags']) ?: [] as $tag) {
+        $tag = trim($tag);
+        if ($tag !== '') $tagList[] = $tag;
+    }
+    $pluginCell = plugin_render('Hook:SinglePage/ProblemList.Show', [
+        'id'           => (int)$p['id'],
+        'problem_name' => (string)$p['title'],
+        'level'        => $p['level'],
+        'tags'         => $tagList,
+        'author'       => (string)$p['author'],
+        'testpoints'   => (int)$p['cases'],
+        'pass'         => (int)$p['ac'],
+        'submits'      => (int)$p['total'],
+        'user_status'  => !$uid ? 'guest' : ($p['solved'] ? 'solved' : ($p['attempted'] ? 'attempted' : 'none')),
+    ]);
+    $pluginCells[(int)$p['id']] = $pluginCell;
+    if (trim($pluginCell) !== '') $hasPluginCell = true;
+}
+?>
+
 <div class="card" style="padding:0">
 <div class="table-wrap">
 <table>
@@ -15,11 +41,13 @@
     <th style="width:70px">#</th><th>题目名称</th><th style="width:190px">难度</th><th style="width:190px">标签</th>
     <th style="width:120px">出题人</th>
     <th style="width:90px">测试点</th><th style="width:120px">通过 / 提交</th>
-    <th style="width:110px">我的状态</th><th style="width:90px">操作</th>
+    <th style="width:110px">我的状态</th>
+    <?php if ($hasPluginCell): ?><th style="width:170px">扩展</th><?php endif; ?>
+    <th style="width:90px">操作</th>
 </tr></thead>
 <tbody>
 <?php if (!$pageItems): ?>
-<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text-muted)"><?= $q !== '' ? '没有匹配的题目' : '暂无题目' ?></td></tr>
+<tr><td colspan="<?= $hasPluginCell ? 10 : 9 ?>" style="text-align:center;padding:32px;color:var(--text-muted)"><?= $q !== '' ? '没有匹配的题目' : '暂无题目' ?></td></tr>
 <?php else: foreach ($pageItems as $p):
     $tags = $p['tags'] !== '' ? explode(',', $p['tags']) : [];
 ?>
@@ -46,6 +74,7 @@
     <span style="color:var(--text-muted)"> / <?= (int)$p['total'] ?></span>
 </td>
 <td><?= $p['solved'] ? '<span class="tag tag-green"><i class="fa-solid fa-circle-check"></i> 已通过</span>' : '<span style="color:var(--text-muted)">—</span>' ?></td>
+<?php if ($hasPluginCell): ?><td style="font-size:12px;line-height:1.5;word-break:break-word"><?= $pluginCells[(int)$p['id']] ?? '' ?></td><?php endif; ?>
 <td><a href="problem.php?id=<?= $p['id'] ?>" class="btn btn-primary btn-xs">做题</a></td>
 </tr>
 <?php endforeach; endif; ?>

@@ -76,12 +76,19 @@ foreach (Database::fetchAll("SELECT problem_id, category, level, position FROM p
     $diffsByPid[(int)$r['problem_id']][] = $r;
 }
 
-// 当前用户已通过
+// 当前用户的做题状态：已通过 / 已尝试
 $solved = [];
+$attempted = [];
 $uid = $_SESSION['airoj_user']['user_id'] ?? null;
 if ($uid) {
-    foreach (Database::fetchAll("SELECT DISTINCT problem_id FROM submissions WHERE user_id=? AND status='done' AND score>=100", [$uid]) as $r) {
-        $solved[(int)$r['problem_id']] = true;
+    foreach (Database::fetchAll(
+        "SELECT problem_id, MAX(CASE WHEN status='done' AND score>=100 THEN 1 ELSE 0 END) AS ac
+         FROM submissions WHERE user_id=? GROUP BY problem_id",
+        [$uid]
+    ) as $r) {
+        $pid = (int)$r['problem_id'];
+        $attempted[$pid] = true;
+        if ((int)$r['ac'] === 1) $solved[$pid] = true;
     }
 }
 
@@ -96,17 +103,34 @@ foreach ($byGroup as $key => $members) {
     // 组的全部难度
     $gDiffs = [];
     $isSolved = false;
+    $isAttempted = false;
     $acTotal = 0; $allTotal = 0; $caseTotal = 0;
     foreach ($members as $m) {
         $mid = (int)$m['problem_id'];
         foreach ($diffsByPid[$mid] ?? [] as $d) $gDiffs[] = $d;
         if (isset($solved[$mid])) $isSolved = true;
+        if (isset($attempted[$mid])) $isAttempted = true;
         $st = $stats[$mid] ?? null;
         $acTotal += (int)($st['ac'] ?? 0);
         $allTotal += (int)($st['total'] ?? 0);
         $caseTotal += count_test_cases((string)$mid);
     }
     usort($gDiffs, fn($a, $b) => (int)$b['level'] <=> (int)$a['level']);
+
+    // 多难度题目取质量最高的难度，供题目列表插件使用
+    $mainDiff = null;
+    $mainQ = -1.0;
+    foreach ($gDiffs as $d) {
+        $q = difficulty_quality((string)$d['category'], (int)$d['level'], (string)$d['position']);
+        if ($q > $mainQ) {
+            $mainQ = $q;
+            $mainDiff = $d;
+        }
+    }
+    $level = [
+        'level_name'   => $mainDiff ? (string)(AIR_OJ_DIFFICULTY[$mainDiff['category']]['label'] ?? $mainDiff['category']) : '',
+        'level_number' => $mainDiff ? (int)$mainDiff['level'] : 0,
+    ];
 
     $items[$key] = [
         'id'       => $key,
@@ -115,10 +139,12 @@ foreach ($byGroup as $key => $members) {
         'author'   => (string)($main['author'] ?? ''),
         'members'  => count($members),
         'diffs'    => $gDiffs,
+        'level'    => $level,
         'ac'       => $acTotal,
         'total'    => $allTotal,
         'cases'    => $caseTotal,
         'solved'   => $isSolved,
+        'attempted'=> $isAttempted,
     ];
 }
 

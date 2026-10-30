@@ -45,3 +45,6 @@ inputs_outputs/*
 
 # Local promo page
 /frontend/promo.html
+
+# Ignore developing extensions
+dev_*_.php
