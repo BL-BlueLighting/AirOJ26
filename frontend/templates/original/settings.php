@@ -1,6 +1,6 @@
 <style>
-.tab-bar { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 24px; }
-.tab-bar a { padding: 10px 20px; font-size: 14px; font-weight: 600; color: var(--text-secondary); text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .2s; }
+.tab-bar { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 24px; overflow-x: auto; }
+.tab-bar a { flex: 0 0 auto; padding: 10px 20px; font-size: 14px; font-weight: 600; color: var(--text-secondary); text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .2s; }
 .tab-bar a:hover { color: var(--text-primary); }
 .tab-bar a.active { color: var(--accent); border-bottom-color: var(--accent); }
 </style>
@@ -14,6 +14,7 @@
     <a href="?tab=background" class="<?=$tab==='background'?'active':''?>"><i class="fa-solid fa-palette"></i> 页面背景</a>
     <a href="?tab=collectibles" class="<?=$tab==='collectibles'?'active':''?>"><i class="fa-solid fa-gem"></i> 收藏品</a>
     <a href="?tab=title" class="<?=$tab==='title'?'active':''?>"><i class="fa-solid fa-crown"></i> 称号</a>
+    <a href="?tab=verify" class="<?=$tab==='verify'?'active':''?>"><i class="fa-solid fa-id-badge"></i> 个人认证</a>
     <a href="?tab=2fa" class="<?=$tab==='2fa'?'active':''?>"><i class="fa-solid fa-lock"></i> 二步验证</a>
     <a href="?tab=password" class="<?=$tab==='password'?'active':''?>"><i class="fa-solid fa-key"></i> 修改密码</a>
 </div>
@@ -349,6 +350,59 @@ $statusCls  = ['pending' => 'tag-gold', 'approved' => 'tag-green', 'rejected' =>
         <?php endforeach; ?>
         </tbody>
     </table></div>
+    <?php endif; ?>
+</div>
+
+<?php elseif ($tab === 'verify'): ?>
+<?php
+$vStatus = (string)($user['personal_verify_status'] ?? 'none');
+$vContent = (string)($user['personal_verify_content'] ?? '');
+$vReason = (string)($user['personal_verify_reason'] ?? '');
+$vApplied = (string)($user['personal_verify_applied_at'] ?? '');
+$vStatusText = ['none' => '未申请', 'pending' => '审核中', 'approved' => '已认证', 'rejected' => '未通过'][$vStatus] ?? '未申请';
+$vStatusCls = ['none' => '', 'pending' => 'tag-gold', 'approved' => 'tag-green', 'rejected' => 'tag-red'][$vStatus] ?? '';
+?>
+<div class="card" style="max-width:820px">
+    <h2><i class="fa-solid fa-id-badge"></i> 个人认证</h2>
+    <p style="color:var(--text-secondary);font-size:13px;margin-bottom:14px">
+        通过审核后，你的名字旁会显示蓝标；鼠标悬停在蓝标上会显示下面的「认证内容」。
+        个人认证与称号、收藏品徽章互相独立。
+    </p>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+        <span class="tag <?= $vStatusCls ?>"><?= $vStatusText ?></span>
+        <?php if ($vStatus === 'approved'): ?>
+        <span style="font-size:13px;color:var(--text-secondary)">认证内容：<?= htmlspecialchars($vContent ?: '已认证') ?></span>
+        <span class="user-display" style="font-size:13px">
+            <span><?= htmlspecialchars($user['nick'] ?: $uid) ?></span>
+            <span class="u-verify" title="<?= htmlspecialchars($vContent ?: '已认证', ENT_QUOTES) ?>"><img src="/templates/original/images/blue_v.ico" alt="个人认证"></span>
+        </span>
+        <?php elseif ($vStatus === 'pending'): ?>
+        <span style="font-size:13px;color:var(--text-secondary)">认证内容：<?= htmlspecialchars($vContent) ?></span>
+        <?php endif; ?>
+    </div>
+    <?php if ($vApplied !== ''): ?><p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">申请时间：<?= htmlspecialchars($vApplied) ?></p><?php endif; ?>
+
+    <?php if ($vStatus === 'pending'): ?>
+    <div class="alert alert-info"><i class="fa-solid fa-hourglass-half"></i> 你的个人认证申请正在审核中，请等待管理员处理。</div>
+    <?php elseif ($vStatus === 'approved'): ?>
+    <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> 已通过个人认证。如需修改认证内容，请联系管理员先取消认证。</div>
+    <?php else: ?>
+    <?php if ($vStatus === 'rejected'): ?>
+    <div class="alert alert-error"><i class="fa-solid fa-circle-xmark"></i> 上次申请未通过，可以修改内容后重新提交。</div>
+    <?php endif; ?>
+    <form method="post">
+        <div class="form-group"><label>认证内容 *</label>
+            <input type="text" name="verify_content" class="form-input" maxlength="100" required
+                   value="<?= htmlspecialchars($vContent) ?>"
+                   placeholder="例如：CCF CSP-S 2024 一等奖 / XX 中学 OI 教练">
+            <p style="font-size:11px;color:var(--text-muted);margin-top:4px">最多 100 个字符，将显示在蓝标的悬停提示中。</p>
+        </div>
+        <div class="form-group"><label>申请理由 / 证明材料</label>
+            <textarea name="verify_reason" class="form-input" style="min-height:100px" maxlength="500"
+                      placeholder="说明你的身份或资质，方便管理员审核"><?= htmlspecialchars($vReason) ?></textarea>
+        </div>
+        <button type="submit" name="apply_verify" class="btn btn-primary"><i class="fa-solid fa-paper-plane"></i> 提交认证申请</button>
+    </form>
     <?php endif; ?>
 </div>
 

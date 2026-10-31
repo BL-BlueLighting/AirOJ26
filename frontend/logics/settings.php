@@ -178,6 +178,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             settings_redirect('title', '称号申请已提交，等待管理员审核');
         }
     }
+    // 个人认证申请
+    if (isset($_POST['apply_verify'])) {
+        $vContent = trim((string)($_POST['verify_content'] ?? ''));
+        $vReason  = trim((string)($_POST['verify_reason'] ?? ''));
+        $vStatus  = (string)($user['personal_verify_status'] ?? 'none');
+        if ($vContent === '') {
+            $err = '请填写认证内容';
+        } elseif (mb_strlen($vContent) > 100) {
+            $err = '认证内容不能超过 100 个字符';
+        } elseif (mb_strlen($vReason) > 500) {
+            $err = '申请理由不能超过 500 个字符';
+        } elseif ($vStatus === 'pending') {
+            $err = '你的个人认证申请正在审核中';
+        } elseif ($vStatus === 'approved') {
+            $err = '你已通过个人认证，如需修改请联系管理员';
+        } else {
+            Database::exec(
+                "UPDATE users SET personal_verify_status='pending', personal_verify_content=?, personal_verify_reason=?, personal_verify_applied_at=? WHERE user_id=?",
+                [$vContent, $vReason, date('Y-m-d H:i:s'), $uid]
+            );
+            settings_redirect('verify', '个人认证申请已提交，等待管理员审核');
+        }
+    }
     // 个人资料（昵称 / 邮箱 / 学校 / 名字颜色）
     if (isset($_POST['update_profile'])) {
         $nick   = trim($_POST['nick'] ?? '');

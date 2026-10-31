@@ -117,6 +117,10 @@ class Database
                 'password_reset_token'=> ["TEXT NOT NULL DEFAULT ''", "VARCHAR(64) NOT NULL DEFAULT ''"],
                 'password_reset_expires'=> ['INTEGER NOT NULL DEFAULT 0', 'BIGINT NOT NULL DEFAULT 0'],
                 'theme_locked'        => ['INTEGER NOT NULL DEFAULT 0', 'TINYINT NOT NULL DEFAULT 0'],
+                'personal_verify_status'     => ["TEXT NOT NULL DEFAULT 'none'", "VARCHAR(16) NOT NULL DEFAULT 'none'"],
+                'personal_verify_content'    => ["TEXT NOT NULL DEFAULT ''", "VARCHAR(255) NOT NULL DEFAULT ''"],
+                'personal_verify_reason'     => ["TEXT NOT NULL DEFAULT ''", "VARCHAR(500) NOT NULL DEFAULT ''"],
+                'personal_verify_applied_at' => ["TEXT NOT NULL DEFAULT ''", "VARCHAR(20) NOT NULL DEFAULT ''"],
             ],
             'problem' => [
                 'tags'     => ['TEXT', 'LONGTEXT'],
@@ -263,6 +267,10 @@ class Database
                     hydro_salt      TEXT,
                     hydro_hash      TEXT,
                     must_change_password INTEGER NOT NULL DEFAULT 0,
+                    personal_verify_status TEXT NOT NULL DEFAULT 'none',
+                    personal_verify_content TEXT NOT NULL DEFAULT '',
+                    personal_verify_reason TEXT NOT NULL DEFAULT '',
+                    personal_verify_applied_at TEXT NOT NULL DEFAULT '',
                     reg_time        TEXT NOT NULL DEFAULT (datetime('now','localtime'))
                 )
             ");
@@ -574,6 +582,10 @@ class Database
                 hydro_salt      VARCHAR(64) NULL DEFAULT NULL,
                 hydro_hash      VARCHAR(128) NULL DEFAULT NULL,
                 must_change_password TINYINT NOT NULL DEFAULT 0,
+                personal_verify_status VARCHAR(16) NOT NULL DEFAULT 'none',
+                personal_verify_content VARCHAR(255) NOT NULL DEFAULT '',
+                personal_verify_reason VARCHAR(500) NOT NULL DEFAULT '',
+                personal_verify_applied_at VARCHAR(20) NOT NULL DEFAULT '',
                 reg_time        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         ");

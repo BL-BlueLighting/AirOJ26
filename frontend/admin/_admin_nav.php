@@ -25,9 +25,10 @@ $admin_groups = [
         'title' => '用户', 'desc' => '账号、角色与批量操作', 'icon' => 'fa-user',
         'landing' => '/admin/index.php?panel=user_list',
         'items' => [
-            'user_list'  => ['/admin/index.php?panel=user_list', '用户列表'],
-            'user_edit'  => ['/admin/index.php?panel=user_edit', '修改用户'],
-            'user_batch' => ['/admin/index.php?panel=user_batch', '批量添加'],
+            'user_list'   => ['/admin/index.php?panel=user_list', '用户列表'],
+            'user_edit'   => ['/admin/index.php?panel=user_edit', '修改用户'],
+            'user_batch'  => ['/admin/index.php?panel=user_batch', '批量添加'],
+            'user_verify' => ['/admin/verification.php', '个人认证'],
         ],
     ],
     'privilege' => [

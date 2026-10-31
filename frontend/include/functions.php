@@ -644,16 +644,21 @@ function user_role_html(string $user_id, ?string $nick = null): string
 {
     static $cache = [];
     if (!isset($cache[$user_id])) {
-        $u = Database::fetchOne("SELECT rating, name_color, title FROM users WHERE user_id=?", [$user_id]);
+        $u = Database::fetchOne(
+            "SELECT rating, name_color, title, personal_verify_status, personal_verify_content FROM users WHERE user_id=?",
+            [$user_id]
+        );
         $roles = [];
         foreach (Database::fetchAll("SELECT right_str FROM privilege WHERE user_id=?", [$user_id]) as $r) {
             $roles[$r['right_str']] = true;
         }
         $cache[$user_id] = [
-            'rating'     => (int)round($u['rating'] ?? 0),
-            'name_color' => (string)($u['name_color'] ?? ''),
-            'title'      => (string)($u['title'] ?? ''),
-            'roles'      => $roles,
+            'rating'         => (int)round($u['rating'] ?? 0),
+            'name_color'     => (string)($u['name_color'] ?? ''),
+            'title'          => (string)($u['title'] ?? ''),
+            'verify_status'  => (string)($u['personal_verify_status'] ?? 'none'),
+            'verify_content' => (string)($u['personal_verify_content'] ?? ''),
+            'roles'          => $roles,
         ];
     }
     $info = $cache[$user_id];
@@ -702,6 +707,14 @@ function user_role_html(string $user_id, ?string $nick = null): string
         $nameHtml = '<span class="u-frame" style="' . htmlspecialchars(collectible_css_value((string)$frame['value']), ENT_COMPAT) . '">' . $nameHtml . '</span>';
     }
 
+    $verifyHtml = '';
+    if (($info['verify_status'] ?? 'none') === 'approved') {
+        $verifyText = trim((string)($info['verify_content'] ?? ''));
+        if ($verifyText === '') $verifyText = '已认证';
+        $verifyHtml = '<span class="u-verify" title="' . htmlspecialchars($verifyText, ENT_QUOTES) . '">'
+            . '<img src="/templates/original/images/blue_v.ico" alt="个人认证"></span>';
+    }
+
     $titleHtml = $titleText !== ''
         ? '<span class="u-title" title="称号：' . htmlspecialchars($titleText) . '">' . htmlspecialchars($titleText) . '</span>'
         : '';
@@ -717,10 +730,10 @@ function user_role_html(string $user_id, ?string $nick = null): string
         }
     }
 
-    if ($titleHtml === '' && $badgeHtml === '') return $nameHtml;
+    if ($titleHtml === '' && $badgeHtml === '' && $verifyHtml === '') return $nameHtml;
 
     // 空间不足时称号不收缩，徽章与名字让位
-    return '<span class="user-display">' . $nameHtml . $titleHtml . $badgeHtml . '</span>';
+    return '<span class="user-display">' . $nameHtml . $verifyHtml . $titleHtml . $badgeHtml . '</span>';
 }
 
 /**

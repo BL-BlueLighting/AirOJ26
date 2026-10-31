@@ -55,7 +55,7 @@ $body_class = trim(($body_class ?? '') . ' theme-mdui3 mdui-theme-dark');
             <?php if (($unread_messages ?? 0) > 0): ?><span class="msg-badge"><?= ($unread_messages > 99 ? '99+' : (int)$unread_messages) ?></span><?php endif; ?>
         </span>
         <mdui-dropdown>
-            <mdui-button slot="trigger" variant="text" icon="account_circle"><?= htmlspecialchars($user['nick'] ?: $user['user_id']) ?></mdui-button>
+            <mdui-button slot="trigger" variant="text" icon="account_circle"><?= user_role_html($user['user_id'], $user['nick'] ?: $user['user_id']) ?></mdui-button>
             <mdui-menu>
                 <mdui-menu-item icon="person" href="/profile.php">我的主页</mdui-menu-item>
                 <mdui-menu-item icon="settings" href="/settings.php">账号设置</mdui-menu-item>
