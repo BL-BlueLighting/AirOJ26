@@ -113,7 +113,8 @@ if ($id) {
     if ($isRecipient && !(int)$m['is_read']) {
         Database::exec("UPDATE messages SET is_read=1 WHERE id=?", [$id]);
         $view['is_read'] = 1;
-        plugin_do('Hook:Message/User.Read', ['message' => $view, 'reader' => $user]);
+        $readCtx = ['message' => $view, 'reader' => $user];
+        plugin_do('Hook:Message/User.Read', $readCtx);
     }
 }
 $bubble_style = $view ? collectible_type_css($view['from_user'], 'bubble') : '';

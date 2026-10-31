@@ -202,12 +202,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     Database::exec("UPDATE users SET name_color=? WHERE user_id=?", [$c, $uid]);
                     $_SESSION['airoj_user']['name_color'] = $c;
                 }
-                plugin_do('Hook:Profile/User.Update', [
+                $profileCtx = [
                     'user_id' => $uid,
                     'email' => $email,
                     'nick' => $nick,
                     'school' => $school,
-                ]);
+                ];
+                plugin_do('Hook:Profile/User.Update', $profileCtx);
                 settings_redirect('profile', $emailMsg === '邮箱未变更' ? '个人资料已更新' : $emailMsg);
             }
         }

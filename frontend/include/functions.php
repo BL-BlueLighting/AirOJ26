@@ -125,10 +125,11 @@ function submitJudge(string $token, string $judgeType, string $source, string $l
         if (!empty($resp['data']) && is_string($resp['data'])) $err_msg .= ': ' . $resp['data'];
         Database::exec("UPDATE submissions SET status='failed', result_json=? WHERE id=?", [$err_msg, $sid]);
         if (function_exists('plugin_do')) {
-            plugin_do('Hook:Judge/User.Over', [
+            $overCtx = [
                 'sid' => $sid, 'problem_id' => $pid, 'user_id' => $uid,
                 'error' => $resp['err'], 'results' => [],
-            ]);
+            ];
+            plugin_do('Hook:Judge/User.Over', $overCtx);
         }
         return ['error' => $resp['err'], 'judge_commitid' => $sid];
     }
@@ -152,11 +153,12 @@ function submitJudge(string $token, string $judgeType, string $source, string $l
     );
 
     if (function_exists('plugin_do')) {
-        plugin_do('Hook:Judge/User.Over', [
+        $overCtx = [
             'sid' => $sid, 'problem_id' => $pid, 'user_id' => $uid,
             'score' => $score, 'passed' => $passed, 'total' => $total,
             'results' => $case_results, 'error' => null,
-        ]);
+        ];
+        plugin_do('Hook:Judge/User.Over', $overCtx);
     }
 
     // 更新用户提交统计

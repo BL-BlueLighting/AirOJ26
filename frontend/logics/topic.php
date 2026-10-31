@@ -49,9 +49,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($content !== '') {
             $rid = Database::insert("INSERT INTO bbs_reply (topic_id, user_id, content) VALUES (?,?,?)", [$id, $uid, $content]);
             Database::exec("UPDATE bbs_topic SET reply_count = reply_count + 1, last_reply = ? WHERE topic_id=?", [date('Y-m-d H:i:s'), $id]);
-            plugin_do('Hook:Discuss/Reply.Send', [
+            $replyCtx = [
                 'reply_id' => $rid, 'topic_id' => $id, 'user_id' => $uid, 'content' => $content,
-            ]);
+            ];
+            plugin_do('Hook:Discuss/Reply.Send', $replyCtx);
             header('Location: topic.php?id=' . $id);
             exit;
         }
