@@ -645,7 +645,9 @@ function user_role_html(string $user_id, ?string $nick = null): string
     static $cache = [];
     if (!isset($cache[$user_id])) {
         $u = Database::fetchOne(
-            "SELECT rating, name_color, title, personal_verify_status, personal_verify_content FROM users WHERE user_id=?",
+            "SELECT rating, name_color, title, personal_verify_status, personal_verify_content,
+                    frv_status, award_verify_status, award_verify_award
+             FROM users WHERE user_id=?",
             [$user_id]
         );
         $roles = [];
@@ -658,6 +660,9 @@ function user_role_html(string $user_id, ?string $nick = null): string
             'title'          => (string)($u['title'] ?? ''),
             'verify_status'  => (string)($u['personal_verify_status'] ?? 'none'),
             'verify_content' => (string)($u['personal_verify_content'] ?? ''),
+            'frv_status'     => (string)($u['frv_status'] ?? 'none'),
+            'award_status'   => (string)($u['award_verify_status'] ?? 'none'),
+            'award_text'     => (string)($u['award_verify_award'] ?? ''),
             'roles'          => $roles,
         ];
     }
@@ -715,6 +720,17 @@ function user_role_html(string $user_id, ?string $nick = null): string
             . '<img src="/templates/original/images/blue_v.ico" alt="个人认证"></span>';
     }
 
+    $awardHtml = '';
+    if (($info['frv_status'] ?? 'none') === 'verified') {
+        $awardText = (($info['award_status'] ?? 'none') === 'approved')
+            ? trim((string)($info['award_text'] ?? ''))
+            : '';
+        $hasAward = $awardText !== '';
+        if (!$hasAward) $awardText = '已通过实人认证';
+        $awardHtml = '<span class="u-award" title="' . htmlspecialchars($awardText, ENT_QUOTES) . '">'
+            . '<img src="/templates/original/images/yellow_v.ico" alt="' . ($hasAward ? '奖项认证' : '实人认证') . '"></span>';
+    }
+
     $titleHtml = $titleText !== ''
         ? '<span class="u-title" title="称号：' . htmlspecialchars($titleText) . '">' . htmlspecialchars($titleText) . '</span>'
         : '';
@@ -730,10 +746,10 @@ function user_role_html(string $user_id, ?string $nick = null): string
         }
     }
 
-    if ($titleHtml === '' && $badgeHtml === '' && $verifyHtml === '') return $nameHtml;
+    if ($titleHtml === '' && $badgeHtml === '' && $verifyHtml === '' && $awardHtml === '') return $nameHtml;
 
     // 空间不足时称号不收缩，徽章与名字让位
-    return '<span class="user-display">' . $nameHtml . $verifyHtml . $titleHtml . $badgeHtml . '</span>';
+    return '<span class="user-display">' . $nameHtml . $verifyHtml . $awardHtml . $titleHtml . $badgeHtml . '</span>';
 }
 
 /**

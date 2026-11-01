@@ -121,6 +121,21 @@ class Database
                 'personal_verify_content'    => ["TEXT NOT NULL DEFAULT ''", "VARCHAR(255) NOT NULL DEFAULT ''"],
                 'personal_verify_reason'     => ["TEXT NOT NULL DEFAULT ''", "VARCHAR(500) NOT NULL DEFAULT ''"],
                 'personal_verify_applied_at' => ["TEXT NOT NULL DEFAULT ''", "VARCHAR(20) NOT NULL DEFAULT ''"],
+                'frv_status'                 => ["TEXT NOT NULL DEFAULT 'none'", "VARCHAR(16) NOT NULL DEFAULT 'none'"],
+                'frv_certify_id'             => ["TEXT NOT NULL DEFAULT ''", "VARCHAR(255) NOT NULL DEFAULT ''"],
+                'frv_real_name'              => ["TEXT NOT NULL DEFAULT ''", "VARCHAR(100) NOT NULL DEFAULT ''"],
+                'frv_verified_at'            => ["TEXT NOT NULL DEFAULT ''", "VARCHAR(20) NOT NULL DEFAULT ''"],
+                'frv_last_error'             => ["TEXT NOT NULL DEFAULT ''", "VARCHAR(255) NOT NULL DEFAULT ''"],
+                'frv_start_date'             => ["TEXT NOT NULL DEFAULT ''", "VARCHAR(10) NOT NULL DEFAULT ''"],
+                'frv_start_count'            => ['INTEGER NOT NULL DEFAULT 0', 'INT NOT NULL DEFAULT 0'],
+                'award_verify_status'        => ["TEXT NOT NULL DEFAULT 'none'", "VARCHAR(16) NOT NULL DEFAULT 'none'"],
+                'award_verify_source'        => ["TEXT NOT NULL DEFAULT ''", "VARCHAR(16) NOT NULL DEFAULT ''"],
+                'award_verify_award'         => ["TEXT NOT NULL DEFAULT ''", "VARCHAR(255) NOT NULL DEFAULT ''"],
+                'award_verify_oier_id'       => ['INTEGER NOT NULL DEFAULT 0', 'INT NOT NULL DEFAULT 0'],
+                'award_verify_reason'        => ["TEXT NOT NULL DEFAULT ''", "TEXT NULL"],
+                'award_verify_payload'       => ["TEXT NOT NULL DEFAULT ''", "LONGTEXT NULL"],
+                'award_verify_applied_at'    => ["TEXT NOT NULL DEFAULT ''", "VARCHAR(20) NOT NULL DEFAULT ''"],
+                'award_verify_approved_at'   => ["TEXT NOT NULL DEFAULT ''", "VARCHAR(20) NOT NULL DEFAULT ''"],
             ],
             'problem' => [
                 'tags'     => ['TEXT', 'LONGTEXT'],
@@ -271,6 +286,21 @@ class Database
                     personal_verify_content TEXT NOT NULL DEFAULT '',
                     personal_verify_reason TEXT NOT NULL DEFAULT '',
                     personal_verify_applied_at TEXT NOT NULL DEFAULT '',
+                    frv_status TEXT NOT NULL DEFAULT 'none',
+                    frv_certify_id TEXT NOT NULL DEFAULT '',
+                    frv_real_name TEXT NOT NULL DEFAULT '',
+                    frv_verified_at TEXT NOT NULL DEFAULT '',
+                    frv_last_error TEXT NOT NULL DEFAULT '',
+                    frv_start_date TEXT NOT NULL DEFAULT '',
+                    frv_start_count INTEGER NOT NULL DEFAULT 0,
+                    award_verify_status TEXT NOT NULL DEFAULT 'none',
+                    award_verify_source TEXT NOT NULL DEFAULT '',
+                    award_verify_award TEXT NOT NULL DEFAULT '',
+                    award_verify_oier_id INTEGER NOT NULL DEFAULT 0,
+                    award_verify_reason TEXT NOT NULL DEFAULT '',
+                    award_verify_payload TEXT NOT NULL DEFAULT '',
+                    award_verify_applied_at TEXT NOT NULL DEFAULT '',
+                    award_verify_approved_at TEXT NOT NULL DEFAULT '',
                     reg_time        TEXT NOT NULL DEFAULT (datetime('now','localtime'))
                 )
             ");
@@ -520,6 +550,49 @@ class Database
                     reviewed_at TEXT
                 )
             ");
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS oier_awards (
+                    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                    contest       TEXT NOT NULL DEFAULT '',
+                    award         TEXT NOT NULL DEFAULT '',
+                    real_name     TEXT NOT NULL DEFAULT '',
+                    real_name_key TEXT NOT NULL DEFAULT '',
+                    grade         TEXT NOT NULL DEFAULT '',
+                    school        TEXT NOT NULL DEFAULT '',
+                    score         TEXT NOT NULL DEFAULT '',
+                    province      TEXT NOT NULL DEFAULT '',
+                    gender        TEXT NOT NULL DEFAULT '',
+                    initials      TEXT NOT NULL DEFAULT ''
+                )
+            ");
+            $pdo->exec("CREATE INDEX IF NOT EXISTS idx_oier_real_name_key ON oier_awards(real_name_key)");
+            $pdo->exec("CREATE INDEX IF NOT EXISTS idx_oier_school ON oier_awards(school)");
+            $pdo->exec("CREATE INDEX IF NOT EXISTS idx_oier_contest ON oier_awards(contest)");
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS frv_tickets (
+                    ticket      TEXT PRIMARY KEY,
+                    user_id     TEXT NOT NULL DEFAULT '',
+                    name_hash   TEXT NOT NULL DEFAULT '',
+                    id_hash     TEXT NOT NULL DEFAULT '',
+                    mode        TEXT NOT NULL DEFAULT 'desktop',
+                    certify_id  TEXT NOT NULL DEFAULT '',
+                    status      TEXT NOT NULL DEFAULT 'pending',
+                    created_at  TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+                    expires_at  INTEGER NOT NULL DEFAULT 0,
+                    started_at  TEXT NOT NULL DEFAULT ''
+                )
+            ");
+            $pdo->exec("CREATE INDEX IF NOT EXISTS idx_frv_tickets_user ON frv_tickets(user_id)");
+            $pdo->exec("CREATE INDEX IF NOT EXISTS idx_frv_tickets_expires ON frv_tickets(expires_at)");
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS frv_award_candidates (
+                    user_id     TEXT NOT NULL,
+                    award_id    INTEGER NOT NULL,
+                    created_at  TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+                    PRIMARY KEY (user_id, award_id)
+                )
+            ");
+            $pdo->exec("CREATE INDEX IF NOT EXISTS idx_frv_award_candidates_award ON frv_award_candidates(award_id)");
         }
     }
 
@@ -586,6 +659,21 @@ class Database
                 personal_verify_content VARCHAR(255) NOT NULL DEFAULT '',
                 personal_verify_reason VARCHAR(500) NOT NULL DEFAULT '',
                 personal_verify_applied_at VARCHAR(20) NOT NULL DEFAULT '',
+                frv_status VARCHAR(16) NOT NULL DEFAULT 'none',
+                frv_certify_id VARCHAR(255) NOT NULL DEFAULT '',
+                frv_real_name VARCHAR(100) NOT NULL DEFAULT '',
+                frv_verified_at VARCHAR(20) NOT NULL DEFAULT '',
+                frv_last_error VARCHAR(255) NOT NULL DEFAULT '',
+                frv_start_date VARCHAR(10) NOT NULL DEFAULT '',
+                frv_start_count INT NOT NULL DEFAULT 0,
+                award_verify_status VARCHAR(16) NOT NULL DEFAULT 'none',
+                award_verify_source VARCHAR(16) NOT NULL DEFAULT '',
+                award_verify_award VARCHAR(255) NOT NULL DEFAULT '',
+                award_verify_oier_id INT NOT NULL DEFAULT 0,
+                award_verify_reason TEXT NULL,
+                award_verify_payload LONGTEXT NULL,
+                award_verify_applied_at VARCHAR(20) NOT NULL DEFAULT '',
+                award_verify_approved_at VARCHAR(20) NOT NULL DEFAULT '',
                 reg_time        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         ");
@@ -834,6 +922,49 @@ class Database
                 reviewed_by VARCHAR(100) NULL DEFAULT NULL,
                 created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
                 reviewed_at DATETIME NULL DEFAULT NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS oier_awards (
+                id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                contest       VARCHAR(255) NOT NULL DEFAULT '',
+                award         VARCHAR(100) NOT NULL DEFAULT '',
+                real_name     VARCHAR(100) NOT NULL DEFAULT '',
+                real_name_key VARCHAR(100) NOT NULL DEFAULT '',
+                grade         VARCHAR(50) NOT NULL DEFAULT '',
+                school        VARCHAR(200) NOT NULL DEFAULT '',
+                score         VARCHAR(50) NOT NULL DEFAULT '',
+                province      VARCHAR(50) NOT NULL DEFAULT '',
+                gender        VARCHAR(10) NOT NULL DEFAULT '',
+                initials      VARCHAR(20) NOT NULL DEFAULT '',
+                INDEX idx_oier_real_name_key (real_name_key),
+                INDEX idx_oier_school (school),
+                INDEX idx_oier_contest (contest)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS frv_tickets (
+                ticket      VARCHAR(64) NOT NULL PRIMARY KEY,
+                user_id     VARCHAR(100) NOT NULL DEFAULT '',
+                name_hash   VARCHAR(64) NOT NULL DEFAULT '',
+                id_hash     VARCHAR(64) NOT NULL DEFAULT '',
+                mode        VARCHAR(16) NOT NULL DEFAULT 'desktop',
+                certify_id  VARCHAR(255) NOT NULL DEFAULT '',
+                status      VARCHAR(16) NOT NULL DEFAULT 'pending',
+                created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+                expires_at  BIGINT NOT NULL DEFAULT 0,
+                started_at  DATETIME NULL DEFAULT NULL,
+                INDEX idx_frv_tickets_user (user_id),
+                INDEX idx_frv_tickets_expires (expires_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS frv_award_candidates (
+                user_id     VARCHAR(100) NOT NULL,
+                award_id    INT UNSIGNED NOT NULL,
+                created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (user_id, award_id),
+                INDEX idx_frv_award_candidates_award (award_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         ");
     }

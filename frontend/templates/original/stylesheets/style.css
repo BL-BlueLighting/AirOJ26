@@ -688,8 +688,8 @@ body.has-bg .pw-toolbar { background: var(--overlay-card); backdrop-filter: blur
 }
 .user-display .u-badge { flex: 0 1 auto; min-width: 0; overflow: hidden; display: inline-flex; align-items: center; font-size: 12px; }
 .user-display .u-badge i { flex: 0 0 auto; }
-.user-display .u-verify { flex: 0 0 auto; display: inline-flex; align-items: center; cursor: help; }
-.user-display .u-verify img { width: 15px; height: 15px; display: block; }
+.user-display .u-verify, .user-display .u-award { flex: 0 0 auto; display: inline-flex; align-items: center; cursor: help; }
+.user-display .u-verify img, .user-display .u-award img { width: 15px; height: 15px; display: block; }
 
 /* ── 收藏品 ── */
 .collect-block { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }

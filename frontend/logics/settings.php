@@ -6,6 +6,8 @@ require_once 'include/functions.php';
 require_once 'include/mailer.php';
 require_once 'include/TOTP.php';
 require_once 'include/Parsedown.php';
+require_once 'include/frv.php';
+require_once 'include/oierdb.php';
 
 if (session_status() === PHP_SESSION_NONE) @session_start();
 if (!isset($_SESSION['airoj_user'])) { header('Location: /login.php'); exit; }
@@ -201,6 +203,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             settings_redirect('verify', '个人认证申请已提交，等待管理员审核');
         }
     }
+    // 奖项认证：自动匹配 OIerDb
+    if (isset($_POST['award_auto'])) {
+        $aid = (int)($_POST['award_id'] ?? 0);
+        $fresh = Database::fetchOne("SELECT frv_status, frv_real_name, award_verify_status FROM users WHERE user_id=?", [$uid]);
+        if (($fresh['frv_status'] ?? 'none') !== 'verified') {
+            $err = '请先完成实人认证';
+        } elseif (($fresh['award_verify_status'] ?? 'none') === 'pending') {
+            $err = '有人工认证申请正在审核中，请等待管理员处理';
+        } else {
+            $rec = Database::fetchOne("SELECT * FROM oier_awards WHERE id=?", [$aid]);
+            if (!$rec) {
+                $err = '奖项记录不存在';
+            } elseif (oierdb_normalize_name((string)$rec['real_name']) !== oierdb_normalize_name((string)($fresh['frv_real_name'] ?? ''))) {
+                $err = '奖项记录与实人认证姓名不一致';
+            } else {
+                $awardText = oierdb_record_label($rec);
+                $now = date('Y-m-d H:i:s');
+                Database::exec(
+                    "UPDATE users SET award_verify_status='approved', award_verify_source='auto',
+                        award_verify_award=?, award_verify_oier_id=?, award_verify_reason='',
+                        award_verify_payload=?, award_verify_applied_at=?, award_verify_approved_at=?
+                     WHERE user_id=?",
+                    [$awardText, (int)$rec['id'], json_encode($rec, JSON_UNESCAPED_UNICODE), $now, $now, $uid]
+                );
+                settings_redirect('award', '奖项认证已通过');
+            }
+        }
+    }
+    // 奖项认证：人工申请
+    if (isset($_POST['award_manual'])) {
+        $fresh = Database::fetchOne("SELECT frv_status, award_verify_status FROM users WHERE user_id=?", [$uid]);
+        $cfg = frv_config();
+        $awardText = trim((string)($_POST['award_text'] ?? ''));
+        $awardReason = trim((string)($_POST['award_reason'] ?? ''));
+        if (($fresh['frv_status'] ?? 'none') !== 'verified') {
+            $err = '请先完成实人认证';
+        } elseif (!$cfg['manual_award']) {
+            $err = '管理员未开启人工认证';
+        } elseif (($fresh['award_verify_status'] ?? 'none') === 'pending') {
+            $err = '已有待审核的奖项认证申请';
+        } elseif (($fresh['award_verify_status'] ?? 'none') === 'approved') {
+            $err = '你已通过奖项认证，如需修改请联系管理员';
+        } elseif ($awardText === '') {
+            $err = '请填写奖项名称';
+        } elseif (mb_strlen($awardText) > 100) {
+            $err = '奖项名称不能超过 100 个字符';
+        } elseif ($awardReason === '') {
+            $err = '请填写申请理由或证明材料';
+        } elseif (mb_strlen($awardReason) > 1000) {
+            $err = '申请理由不能超过 1000 个字符';
+        } else {
+            Database::exec(
+                "UPDATE users SET award_verify_status='pending', award_verify_source='manual',
+                    award_verify_award=?, award_verify_oier_id=0, award_verify_reason=?,
+                    award_verify_payload='', award_verify_applied_at=?, award_verify_approved_at=''
+                 WHERE user_id=?",
+                [$awardText, $awardReason, date('Y-m-d H:i:s'), $uid]
+            );
+            settings_redirect('award', '人工认证申请已提交，等待管理员审核');
+        }
+    }
     // 个人资料（昵称 / 邮箱 / 学校 / 名字颜色）
     if (isset($_POST['update_profile'])) {
         $nick   = trim($_POST['nick'] ?? '');
@@ -293,3 +356,34 @@ $otpauth = TOTP::getOTPAuthURI($uid, $new_secret);
 
 // header.php 会用 session 覆盖 $user，这里重新读一次数据库，保证设置页显示最新数据
 $user = Database::fetchOne("SELECT * FROM users WHERE user_id=?", [$uid]);
+
+// 实人认证 / 奖项认证页面数据
+$frvCfg = frv_config();
+$frvUi = [
+    'enabled'         => $frvCfg['enabled'],
+    'meta_script_url' => $frvCfg['meta_script_url'],
+    'daily_limit'     => $frvCfg['daily_limit'],
+    'manual_award'    => $frvCfg['manual_award'],
+];
+$frvRemaining = frv_remaining_attempts($user);
+$awardRecords = [];
+$awardTotal = 0;
+$awardPages = 1;
+$awardPage = 1;
+$awardQuery = '';
+if ($tab === 'award') {
+    $awardQuery = trim((string)($_GET['aq'] ?? ''));
+    $awardPage = max(1, (int)($_GET['page'] ?? 1));
+    if (($user['frv_status'] ?? 'none') === 'verified') {
+        try {
+            $res = oierdb_search_by_name((string)($user['frv_real_name'] ?? ''), $awardQuery, $awardPage, 20);
+            $awardRecords = $res['rows'];
+            $awardTotal = $res['total'];
+            $awardPages = $res['pages'];
+            $awardPage = $res['page'];
+        } catch (Throwable $e) {
+            $err = $err ?: ('读取 OIerDb 数据失败：' . $e->getMessage());
+        }
+    }
+}
+$oierdbCount = oierdb_count();

@@ -31,6 +31,15 @@ $admin_groups = [
             'user_verify' => ['/admin/verification.php', '个人认证'],
         ],
     ],
+    'verify' => [
+        'title' => '认证', 'desc' => '实人认证、奖项认证与 OIerDb', 'icon' => 'fa-id-card',
+        'landing' => '/admin/verify_settings.php',
+        'items' => [
+            'verify_settings' => ['/admin/verify_settings.php', '认证设置'],
+            'frv_list'        => ['/admin/frv_list.php', '实人认证记录'],
+            'award_review'    => ['/admin/award_review.php', '奖项认证审核'],
+        ],
+    ],
     'privilege' => [
         'title' => '权限', 'desc' => '管理员、版主与作弊标记', 'icon' => 'fa-key',
         'landing' => '/admin/index.php?panel=privilege_list',

@@ -15,6 +15,8 @@
     <a href="?tab=collectibles" class="<?=$tab==='collectibles'?'active':''?>"><i class="fa-solid fa-gem"></i> 收藏品</a>
     <a href="?tab=title" class="<?=$tab==='title'?'active':''?>"><i class="fa-solid fa-crown"></i> 称号</a>
     <a href="?tab=verify" class="<?=$tab==='verify'?'active':''?>"><i class="fa-solid fa-id-badge"></i> 个人认证</a>
+    <a href="?tab=frv" class="<?=$tab==='frv'?'active':''?>"><i class="fa-solid fa-id-card"></i> 实人认证</a>
+    <a href="?tab=award" class="<?=$tab==='award'?'active':''?>"><i class="fa-solid fa-medal"></i> 奖项认证</a>
     <a href="?tab=2fa" class="<?=$tab==='2fa'?'active':''?>"><i class="fa-solid fa-lock"></i> 二步验证</a>
     <a href="?tab=password" class="<?=$tab==='password'?'active':''?>"><i class="fa-solid fa-key"></i> 修改密码</a>
 </div>
@@ -403,6 +405,329 @@ $vStatusCls = ['none' => '', 'pending' => 'tag-gold', 'approved' => 'tag-green',
         </div>
         <button type="submit" name="apply_verify" class="btn btn-primary"><i class="fa-solid fa-paper-plane"></i> 提交认证申请</button>
     </form>
+    <?php endif; ?>
+</div>
+
+<?php elseif ($tab === 'frv'): ?>
+<?php
+$frvStatus = (string)($user['frv_status'] ?? 'none');
+$frvStatusText = ['none' => '未认证', 'pending' => '认证中', 'verified' => '已认证', 'failed' => '未通过'][$frvStatus] ?? '未认证';
+$frvStatusCls = ['none' => '', 'pending' => 'tag-gold', 'verified' => 'tag-green', 'failed' => 'tag-red'][$frvStatus] ?? '';
+$frvLastError = trim((string)($user['frv_last_error'] ?? ''));
+?>
+<div class="card" style="max-width:820px">
+    <h2><i class="fa-solid fa-id-card"></i> 实人认证</h2>
+    <p style="color:var(--text-secondary);font-size:13px;margin-bottom:14px">
+        通过 uniCloud 实人认证核验真实身份。认证通过后才能申请奖项认证。
+        姓名和身份证号仅用于本次核验，服务器不会保存身份证号。
+    </p>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+        <span class="tag <?= $frvStatusCls ?>"><?= $frvStatusText ?></span>
+        <?php if ($frvStatus === 'verified'): ?>
+        <span style="font-size:12px;color:var(--text-muted)">认证时间：<?= htmlspecialchars((string)($user['frv_verified_at'] ?? '')) ?></span>
+        <?php endif; ?>
+    </div>
+    <?php if (!$frvUi['enabled']): ?>
+    <div class="alert alert-info"><i class="fa-solid fa-circle-info"></i> 管理员尚未开启实人认证。</div>
+    <?php elseif ($frvStatus === 'verified'): ?>
+    <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> 已完成实人认证，可以继续申请奖项认证。</div>
+    <a href="?tab=award" class="btn btn-primary"><i class="fa-solid fa-medal"></i> 前往奖项认证</a>
+    <?php elseif ($frvRemaining <= 0): ?>
+    <div class="alert alert-error"><i class="fa-solid fa-triangle-exclamation"></i> 今日实人认证次数已用完，请明天再试或联系管理员。</div>
+    <?php else: ?>
+    <?php if ($frvStatus === 'failed' && $frvLastError !== ''): ?>
+    <div class="alert alert-error"><i class="fa-solid fa-circle-xmark"></i> 上次认证未通过：<?= htmlspecialchars($frvLastError) ?></div>
+    <?php endif; ?>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">今日剩余次数：<?= (int)$frvRemaining ?> / <?= (int)$frvUi['daily_limit'] ?></p>
+    <div style="margin-bottom:16px;padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-secondary);font-size:12px;line-height:1.8;color:var(--text-secondary)">
+        <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:8px">
+            <i class="fa-solid fa-shield-halved"></i> AirOJ DX 奖项 &amp; 实人认证 声明
+        </div>
+        <p style="margin:0 0 6px">本站的实人认证由 DCloud (dcloud.io) 所提供，DCloud 拥有国家信息安全等级保护 (三级)，证书编号：11010813802-20001。</p>
+        <p style="margin:0 0 6px">本站承诺不保存您的身份证号；认证完成后仅保存认证姓名和认证结果，用于奖项认证。</p>
+        <p style="margin:0 0 6px">奖项认证使用 OIerDb-NG 的信息，使用 AGPL-v3.0。本站已使用 GPL-v3.0 开源。</p>
+        <p style="margin:0 0 6px">OIerDb-NG 项目链接：<a href="https://github.com/OIerDb-ng/OIerDb" target="_blank" rel="noopener">https://github.com/OIerDb-ng/OIerDb</a></p>
+        <p style="margin:0 0 6px">感谢 OIerDB-NG 的 Contributors。</p>
+        <p style="margin:10px 0 0;color:var(--text-muted)">-- BL.BlueLighting, 2026<br>-- AirOJ DX 2026 Maintainer, AirOJ Master.</p>
+    </div>
+    <form id="frv-form" autocomplete="off">
+        <div class="form-group"><label>真实姓名 *</label>
+            <input type="text" id="frv-real-name" class="form-input" maxlength="20" placeholder="请输入身份证上的姓名" required>
+        </div>
+        <div class="form-group"><label>身份证号 *</label>
+            <input type="text" id="frv-id-card" class="form-input" inputmode="numeric" maxlength="18" autocomplete="off" placeholder="18 位身份证号" required>
+        </div>
+        <label style="display:flex;align-items:flex-start;gap:8px;margin:14px 0;font-size:12px;color:var(--text-secondary);cursor:pointer">
+            <input type="checkbox" id="frv-agree" style="margin-top:2px">
+            <span>我已阅读并同意以上《AirOJ DX 奖项 &amp; 实人认证 声明》，授权使用姓名和身份证号进行核验。</span>
+        </label>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button type="submit" class="btn btn-primary" id="frv-submit"><i class="fa-solid fa-camera"></i> 本机摄像头刷脸</button>
+            <button type="button" class="btn btn-outline" id="frv-qr-btn"><i class="fa-solid fa-qrcode"></i> 手机扫码刷脸</button>
+        </div>
+        <p id="frv-msg" style="margin-top:10px;font-size:12px;color:var(--red,#ef4444)"></p>
+    </form>
+    <div id="frv-qr-panel" style="display:none;margin-top:16px;padding:16px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-secondary)">
+        <div id="frv-qr" style="width:max-content;margin:0 auto;padding:10px;background:#fff;border-radius:10px"></div>
+        <p style="font-size:12px;color:var(--text-secondary);margin:12px 0 0;text-align:center">用手机相机、微信、支付宝等任意扫码工具扫描二维码。</p>
+        <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;text-align:center">手机端需要重新输入与电脑端一致的姓名和身份证号；电脑缺少摄像头时使用此方式。</p>
+        <p id="frv-qr-status" style="font-size:12px;color:var(--text-secondary);margin:10px 0 0;text-align:center"></p>
+        <div style="text-align:center;margin-top:10px"><button type="button" class="btn btn-outline btn-sm" id="frv-qr-cancel">取消扫码</button></div>
+    </div>
+    <noscript><div class="alert alert-error">实人认证需要启用 JavaScript。</div></noscript>
+    <p style="font-size:11px;color:var(--text-muted);margin-top:12px">
+        刷脸页面由实人认证服务提供。认证完成后会自动返回本站。
+    </p>
+    <script src="<?= htmlspecialchars($frvUi['meta_script_url'], ENT_QUOTES) ?>"></script>
+    <script src="<?= theme_asset('scripts', 'qrcode.min.js') ?>"></script>
+    <script>
+    (function () {
+        var form = document.getElementById('frv-form');
+        if (!form) return;
+        var btn = document.getElementById('frv-submit');
+        var msg = document.getElementById('frv-msg');
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            var realName = document.getElementById('frv-real-name').value.trim();
+            var idCard = document.getElementById('frv-id-card').value.trim().toUpperCase();
+            var agree = document.getElementById('frv-agree').checked;
+            if (!realName) { msg.textContent = '请输入真实姓名'; return; }
+            if (!/^[0-9]{17}[0-9X]$/.test(idCard)) { msg.textContent = '请输入正确的 18 位身份证号'; return; }
+            if (!agree) { msg.textContent = '请先阅读并同意实人认证服务条款'; return; }
+            if (typeof window.getMetaInfo !== 'function') {
+                msg.textContent = '实人认证 SDK 未加载，请刷新页面或检查网络后重试';
+                return;
+            }
+            var metaInfo = '';
+            try {
+                var m = window.getMetaInfo();
+                metaInfo = typeof m === 'string' ? m : JSON.stringify(m || {});
+            } catch (err) {
+                metaInfo = '';
+            }
+            if (!metaInfo) { msg.textContent = '无法获取浏览器设备信息，请更换浏览器后重试'; return; }
+            btn.disabled = true;
+            btn.textContent = '正在发起认证…';
+            msg.textContent = '';
+            try {
+                var res = await fetch('/frv_start.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    credentials: 'same-origin',
+                    body: JSON.stringify({real_name: realName, id_card: idCard, meta_info: metaInfo})
+                });
+                var data = await res.json();
+                if (data && data.ok && data.certify_url) {
+                    window.location.href = data.certify_url;
+                    return;
+                }
+                msg.textContent = (data && data.error) ? data.error : '发起认证失败，请稍后重试';
+            } catch (err) {
+                msg.textContent = '网络错误，请稍后重试';
+            }
+            btn.disabled = false;
+            btn.textContent = '本机摄像头刷脸';
+        });
+    })();
+    </script>
+    <script>
+    (function () {
+        var qrBtn = document.getElementById('frv-qr-btn');
+        var panel = document.getElementById('frv-qr-panel');
+        var box = document.getElementById('frv-qr');
+        var status = document.getElementById('frv-qr-status');
+        var cancel = document.getElementById('frv-qr-cancel');
+        var msg = document.getElementById('frv-msg');
+        if (!qrBtn || !panel || !box || !status) return;
+        if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) {
+            qrBtn.style.display = 'none';
+            return;
+        }
+        var pollTimer = null, expireTimer = null;
+        function stopTimers() {
+            if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+            if (expireTimer) { clearTimeout(expireTimer); expireTimer = null; }
+        }
+        function hideQr() {
+            stopTimers();
+            panel.style.display = 'none';
+            box.innerHTML = '';
+            status.textContent = '';
+            status.style.color = '';
+        }
+        function showMessage(text, isError) {
+            if (!msg) return;
+            msg.textContent = text;
+            msg.style.color = isError ? 'var(--red,#ef4444)' : 'var(--green,#49d28e)';
+        }
+        qrBtn.addEventListener('click', async function () {
+            var realName = document.getElementById('frv-real-name').value.trim();
+            var idCard = document.getElementById('frv-id-card').value.trim().toUpperCase();
+            var agree = document.getElementById('frv-agree').checked;
+            if (!realName) { showMessage('请输入真实姓名', true); return; }
+            if (!/^[0-9]{17}[0-9X]$/.test(idCard)) { showMessage('请输入正确的 18 位身份证号', true); return; }
+            if (!agree) { showMessage('请先阅读并同意实人认证服务条款', true); return; }
+            if (typeof QRCode === 'undefined') { showMessage('二维码组件未加载，请刷新页面', true); return; }
+            qrBtn.disabled = true;
+            showMessage('', false);
+            hideQr();
+            try {
+                var res = await fetch('/frv_ticket.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    credentials: 'same-origin',
+                    body: JSON.stringify({real_name: realName, id_card: idCard})
+                });
+                var data = await res.json();
+                if (!data || !data.ok || !data.mobile_url) {
+                    showMessage((data && data.error) ? data.error : '生成二维码失败，请稍后重试', true);
+                    qrBtn.disabled = false;
+                    return;
+                }
+                panel.style.display = 'block';
+                box.innerHTML = '';
+                new QRCode(box, {text: data.mobile_url, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M});
+                status.textContent = '等待手机扫码…';
+                status.style.color = 'var(--text-muted)';
+                var expires = Math.max(30, parseInt(data.expires_in, 10) || 1800);
+                expireTimer = setTimeout(function () {
+                    stopTimers();
+                    status.textContent = '二维码已过期，请重新生成';
+                    status.style.color = 'var(--red,#ef4444)';
+                }, expires * 1000);
+                pollTimer = setInterval(async function () {
+                    try {
+                        var r = await fetch('/frv_status.php', {credentials: 'same-origin'});
+                        var d = await r.json();
+                        if (!d || !d.ok) return;
+                        if (d.status === 'verified') {
+                            stopTimers();
+                            status.textContent = '认证成功，正在刷新…';
+                            status.style.color = 'var(--green,#49d28e)';
+                            setTimeout(function () { window.location.href = '?tab=frv'; }, 800);
+                        } else if (d.status === 'failed') {
+                            stopTimers();
+                            status.textContent = '认证失败：' + (d.error || '请重新生成二维码');
+                            status.style.color = 'var(--red,#ef4444)';
+                        }
+                    } catch (err) {}
+                }, 2500);
+            } catch (err) {
+                showMessage('网络错误，请稍后重试', true);
+            }
+            qrBtn.disabled = false;
+        });
+        if (cancel) cancel.addEventListener('click', hideQr);
+    })();
+    </script>
+    <?php endif; ?>
+</div>
+
+<?php elseif ($tab === 'award'): ?>
+<?php
+$frvStatus = (string)($user['frv_status'] ?? 'none');
+$awardStatus = (string)($user['award_verify_status'] ?? 'none');
+$awardText = (string)($user['award_verify_award'] ?? '');
+$awardSource = (string)($user['award_verify_source'] ?? '');
+$awardReason = (string)($user['award_verify_reason'] ?? '');
+$awardApplied = (string)($user['award_verify_applied_at'] ?? '');
+$awardStatusText = ['none' => '未认证', 'pending' => '审核中', 'approved' => '已认证', 'rejected' => '未通过'][$awardStatus] ?? '未认证';
+$awardStatusCls = ['none' => '', 'pending' => 'tag-gold', 'approved' => 'tag-green', 'rejected' => 'tag-red'][$awardStatus] ?? '';
+$sourceText = $awardSource === 'auto' ? '自动认证（OIerDb）' : ($awardSource === 'manual' ? '人工认证' : '');
+?>
+<div class="card" style="max-width:960px">
+    <h2><i class="fa-solid fa-medal"></i> 奖项认证</h2>
+    <?php if ($frvStatus !== 'verified'): ?>
+    <div class="alert alert-info"><i class="fa-solid fa-id-card"></i> 奖项认证需要先完成实人认证。
+        <a href="?tab=frv" class="btn btn-primary btn-xs" style="margin-left:8px">去实人认证</a></div>
+    <?php else: ?>
+    <p style="color:var(--text-secondary);font-size:13px;margin-bottom:14px">
+        通过后名字旁会显示黄色徽章，鼠标悬停显示认证奖项。自动认证按实人认证姓名匹配 OIerDb 数据。
+    </p>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+        <span class="tag <?= $awardStatusCls ?>"><?= $awardStatusText ?></span>
+        <?php
+        $hasPreviewAward = $awardStatus === 'approved' && $awardText !== '';
+        $previewAward = $hasPreviewAward ? $awardText : '已通过实人认证';
+        ?>
+        <?php if ($hasPreviewAward): ?>
+        <span style="font-size:13px;color:var(--text-secondary)"><?= htmlspecialchars($awardText) ?><?= $sourceText !== '' ? '（' . htmlspecialchars($sourceText) . '）' : '' ?></span>
+        <?php else: ?>
+        <span style="font-size:13px;color:var(--text-secondary)">已通过实人认证</span>
+        <?php endif; ?>
+        <span class="user-display" style="font-size:13px">
+            <span><?= htmlspecialchars($user['nick'] ?: $uid) ?></span>
+            <span class="u-award" title="<?= htmlspecialchars($previewAward, ENT_QUOTES) ?>"><img src="/templates/original/images/yellow_v.ico" alt="<?= $hasPreviewAward ? '奖项认证' : '实人认证' ?>"></span>
+        </span>
+    </div>
+    <?php if ($awardStatus === 'pending'): ?>
+    <div class="alert alert-info"><i class="fa-solid fa-hourglass-half"></i> 人工认证申请正在审核中，请等待管理员处理。
+        <?php if ($awardText !== ''): ?><br>奖项：<?= htmlspecialchars($awardText) ?><?php endif; ?>
+        <?php if ($awardApplied !== ''): ?><br><span style="font-size:12px;color:var(--text-muted)">申请时间：<?= htmlspecialchars($awardApplied) ?></span><?php endif; ?>
+    </div>
+    <?php elseif ($awardStatus === 'approved'): ?>
+    <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> 已通过奖项认证。可以在下方重新选择自动认证奖项。</div>
+    <?php elseif ($awardStatus === 'rejected'): ?>
+    <div class="alert alert-error"><i class="fa-solid fa-circle-xmark"></i> 上次奖项认证未通过，可以修改后重新提交。</div>
+    <?php endif; ?>
+
+    <?php if ($awardStatus !== 'pending'): ?>
+    <h3 style="margin-top:18px"><i class="fa-solid fa-magnifying-glass"></i> 自动认证（OIerDb）</h3>
+    <?php if ($oierdbCount <= 0): ?>
+    <div class="alert alert-info">管理员尚未导入 OIerDb 数据，暂时无法自动认证。</div>
+    <?php else: ?>
+    <form method="get" class="flex" style="margin:0 0 12px;flex-wrap:wrap">
+        <input type="hidden" name="tab" value="award">
+        <input type="text" name="aq" class="form-input" style="width:260px" value="<?= htmlspecialchars($awardQuery) ?>" placeholder="筛选赛事 / 奖项 / 学校">
+        <button type="submit" class="btn btn-outline btn-sm"><i class="fa-solid fa-filter"></i> 筛选</button>
+        <span style="font-size:12px;color:var(--text-muted)">仅显示实人认证姓名「<?= htmlspecialchars((string)($user['frv_real_name'] ?? '')) ?>」的记录</span>
+    </form>
+    <?php if (!$awardRecords): ?>
+    <p style="color:var(--text-muted);font-size:13px">没有找到匹配的 OIerDb 记录。<?php if ($frvUi['manual_award']): ?>可以尝试下方的人工认证。<?php endif; ?></p>
+    <?php else: ?>
+    <div class="table-wrap"><table>
+        <thead><tr><th>赛事</th><th>奖项</th><th>姓名</th><th>年级</th><th>学校</th><th>省份</th><th style="width:110px">操作</th></tr></thead>
+        <tbody>
+        <?php foreach ($awardRecords as $ar): ?>
+        <tr>
+            <td><?= htmlspecialchars((string)$ar['contest']) ?></td>
+            <td><strong><?= htmlspecialchars((string)$ar['award']) ?></strong></td>
+            <td><?= htmlspecialchars((string)$ar['real_name']) ?></td>
+            <td><?= htmlspecialchars((string)$ar['grade']) ?></td>
+            <td><?= htmlspecialchars((string)$ar['school']) ?></td>
+            <td><?= htmlspecialchars((string)$ar['province']) ?></td>
+            <td><form method="post" onsubmit="return confirm('使用该奖项进行认证？')"><input type="hidden" name="award_id" value="<?= (int)$ar['id'] ?>"><button type="submit" name="award_auto" class="btn btn-primary btn-xs">认证此奖项</button></form></td>
+        </tr>
+        <?php endforeach; ?>
+        </tbody>
+    </table></div>
+    <?php if ($awardPages > 1): ?>
+    <div class="pagination" style="margin-top:12px">
+        <?php for ($i = 1; $i <= $awardPages; $i++): ?>
+        <a href="?tab=award<?= $awardQuery !== '' ? '&aq=' . urlencode($awardQuery) : '' ?>&page=<?= $i ?>" class="page-link <?= $i === $awardPage ? 'active' : '' ?>"><?= $i ?></a>
+        <?php endfor; ?>
+    </div>
+    <?php endif; ?>
+    <p style="font-size:11px;color:var(--text-muted);margin-top:10px">
+        共 <?= (int)$awardTotal ?> 条记录。数据来源：OIerDb-ng（AGPL-3.0）。自动认证仅校验姓名，如存在同名记录请选择属于本人的奖项。
+    </p>
+    <?php endif; ?>
+    <?php endif; ?>
+    <?php endif; ?>
+
+    <?php if ($frvUi['manual_award'] && $awardStatus !== 'pending' && $awardStatus !== 'approved'): ?>
+    <h3 style="margin-top:20px"><i class="fa-solid fa-paper-plane"></i> 人工认证</h3>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">人工认证由管理员审核，适合 OIerDb 中没有记录或记录不完整的情况。</p>
+    <form method="post">
+        <div class="form-group"><label>奖项名称 *</label>
+            <input type="text" name="award_text" class="form-input" maxlength="100" required placeholder="例如：NOI 2024 金牌">
+        </div>
+        <div class="form-group"><label>申请理由 / 证明材料 *</label>
+            <textarea name="award_reason" class="form-input" style="min-height:110px" maxlength="1000" required placeholder="请描述奖项、年份、赛事，并提供可核验的证明材料说明"></textarea>
+        </div>
+        <button type="submit" name="award_manual" class="btn btn-primary"><i class="fa-solid fa-paper-plane"></i> 提交人工认证</button>
+    </form>
+    <?php endif; ?>
     <?php endif; ?>
 </div>
 
